@@ -24,6 +24,14 @@ esg2 = st.sidebar.slider("Asset 2 ESG Score", min_value=0, max_value=100, value=
 st.sidebar.header("Your Preferences")
 gamma = st.sidebar.slider("Risk Aversion (γ)", min_value=0.1, max_value=10.0, value=5.0, step=0.1)
 
+green_pref = st.sidebar.slider(
+    "Green Preference (λ)",
+    min_value=0.0,
+    max_value=1.0,
+    value=0.3,
+    step=0.1
+)
+
 # Functions
 def portfolio_ret(w1, r1, r2):
     return w1 * r1 + (1 - w1) * r2
@@ -60,6 +68,10 @@ if sd_tangency > 0:
 else:
     w_tangency_optimal = 0
 
+# Sustainability-adjusted portfolio score
+# We scale ESG to 0-1 by dividing by 100
+sustainability_score = (1 - green_pref) * ret_optimal + green_pref * (esg_optimal / 100)
+
 # Complete portfolio weights
 w1_optimal = w_tangency_optimal * w1_tangency
 w2_optimal = w_tangency_optimal * w2_tangency
@@ -68,6 +80,10 @@ w_rf_optimal = 1 - w_tangency_optimal
 # Optimal portfolio characteristics
 ret_optimal = r_free + w_tangency_optimal * (ret_tangency - r_free)
 sd_optimal = abs(w_tangency_optimal) * sd_tangency
+
+# Scenario comparison
+traditional_score = ret_optimal
+green_score = sustainability_score
 
 # ESG score of complete optimal portfolio
 # Risk-free asset assumed to have ESG score of 100
@@ -90,10 +106,30 @@ with tab1:
     col1.metric("Expected Return", f"{ret_optimal*100:.2f}%")
     col2.metric("Risk (Std Dev)", f"{sd_optimal*100:.2f}%")
 
+    st.subheader("Scenario Comparison")
+
+    comparison_col1, comparison_col2 = st.columns(2)
+
+    with comparison_col1:
+        st.markdown("### Traditional Investor View")
+        st.write(f"**Expected Return:** {ret_optimal*100:.2f}%")
+        st.write(f"**Risk:** {sd_optimal*100:.2f}%")
+        st.write(f"**Portfolio ESG Score:** {esg_optimal:.2f}")
+        st.write(f"**Traditional Score:** {traditional_score:.3f}")
+
+    with comparison_col2:
+        st.markdown("### Sustainability-Focused View")
+        st.write(f"**Expected Return:** {ret_optimal*100:.2f}%")
+        st.write(f"**Risk:** {sd_optimal*100:.2f}%")
+        st.write(f"**Portfolio ESG Score:** {esg_optimal:.2f}")
+        st.write(f"**Sustainability Score:** {green_score:.3f}")
+
 st.write("")
 col1, col2 = st.columns(2)
 col1.metric("Tangency Portfolio ESG Score", f"{esg_tangency:.2f}")
 col2.metric("Optimal Portfolio ESG Score", f"{esg_optimal:.2f}")
+
+st.metric("Sustainability-Adjusted Score", f"{sustainability_score:.3f}")
 
 with tab2:
     st.header("Portfolio Visualization")
