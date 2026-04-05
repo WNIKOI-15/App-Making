@@ -68,10 +68,6 @@ if sd_tangency > 0:
 else:
     w_tangency_optimal = 0
 
-# Sustainability-adjusted portfolio score
-# We scale ESG to 0-1 by dividing by 100
-sustainability_score = (1 - green_pref) * ret_optimal + green_pref * (esg_optimal / 100)
-
 # Complete portfolio weights
 w1_optimal = w_tangency_optimal * w1_tangency
 w2_optimal = w_tangency_optimal * w2_tangency
@@ -81,14 +77,18 @@ w_rf_optimal = 1 - w_tangency_optimal
 ret_optimal = r_free + w_tangency_optimal * (ret_tangency - r_free)
 sd_optimal = abs(w_tangency_optimal) * sd_tangency
 
-# Scenario comparison
-traditional_score = ret_optimal
-green_score = sustainability_score
-
 # ESG score of complete optimal portfolio
 # Risk-free asset assumed to have ESG score of 100
 esg_rf = 100
 esg_optimal = w_rf_optimal * esg_rf + w1_optimal * esg1 + w2_optimal * esg2
+
+# Sustainability-adjusted portfolio score
+# We scale ESG to 0-1 by dividing by 100
+sustainability_score = (1 - green_pref) * ret_optimal + green_pref * (esg_optimal / 100)
+
+# Scenario comparison
+traditional_score = ret_optimal
+green_score = sustainability_score
 
 # Display results
 tab1, tab2 = st.tabs(["📊 Results", "📈 Graph"])
