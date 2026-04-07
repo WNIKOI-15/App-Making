@@ -9,7 +9,7 @@ import matplotlib.ticker as mtick
 # ---------------------------------
 st.set_page_config(
     page_title="GreenVest Portfolio Optimizer",
-    page_icon=":)",
+    page_icon="😜",
     layout="wide"
 )
 
