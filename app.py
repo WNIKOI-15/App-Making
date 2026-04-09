@@ -94,28 +94,37 @@ def load_data():
 
     esg["ticker"] = esg["ticker"].astype(str).str.strip()
 
-    # If prices does not have names, fill from ESG or ticker
+    # Build a safe name map
     if "name" in prices.columns:
         prices["name"] = prices["name"].astype(str).str.strip()
     else:
-        if "name" in esg.columns:
-            prices = prices.merge(esg[["ticker", "name"]].drop_duplicates(), on="ticker", how="left")
-        else:
-            prices["name"] = prices["ticker"]
+        prices["name"] = np.nan
 
-    if "name" not in esg.columns:
-        name_map = prices[["ticker", "name"]].drop_duplicates()
-        esg = esg.merge(name_map, on="ticker", how="left")
-        esg["name"] = esg["name"].fillna(esg["ticker"])
+    if "name" in esg.columns:
+        esg["name"] = esg["name"].astype(str).str.strip()
+    else:
+        esg["name"] = np.nan
+
+    price_name_map = prices[["ticker", "name"]].drop_duplicates()
+    esg_name_map = esg[["ticker", "name"]].drop_duplicates()
+
+    name_map = pd.merge(price_name_map, esg_name_map, on="ticker", how="outer", suffixes=("_price", "_esg"))
+    name_map["name"] = name_map["name_price"].combine_first(name_map["name_esg"])
+    name_map["name"] = name_map["name"].fillna(name_map["ticker"])
+    name_map = name_map[["ticker", "name"]].drop_duplicates()
+
+    # Apply clean names back
+    prices = prices.drop(columns=["name"], errors="ignore").merge(name_map, on="ticker", how="left")
+    esg = esg.drop(columns=["name"], errors="ignore").merge(name_map, on="ticker", how="left")
 
     esg = esg.dropna(subset=["ticker", "environmental", "social", "governance", "esg_score"])
 
-    # Mean ESG score used for AAA/AA/A... rating scale
+    # Mean ESG score used for rating scale
     esg["esg_mean_score"] = esg["esg_score"] / 3
 
-    return prices, esg
+    return prices, esg, name_map
 
-prices, esg = load_data()
+prices, esg, name_map = load_data()
 
 # --------------------------------------------------
 # HELPERS
@@ -294,7 +303,6 @@ if mode == "Simple Recommendation":
         "then builds the optimized two-asset portfolio."
     )
 
-    # SAFE return calculation
     returns_table = prices.copy().sort_values(["ticker", "date"])
     returns_table["ret"] = returns_table.groupby("ticker")["price"].pct_change()
 
@@ -307,7 +315,7 @@ if mode == "Simple Recommendation":
     asset_summary["risk"] = asset_summary["std_monthly"] * np.sqrt(12)
 
     universe = esg.merge(asset_summary[["ticker", "expected_return", "risk"]], on="ticker", how="inner")
-    universe = universe.merge(prices[["ticker", "name"]].drop_duplicates(), on="ticker", how="left")
+    universe = universe.merge(name_map, on="ticker", how="left")
     universe["name"] = universe["name"].fillna(universe["ticker"])
 
     universe["selection_score"] = (
@@ -354,7 +362,7 @@ else:
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.subheader("Advanced Comparison")
 
-    search_df = prices[["ticker", "name"]].drop_duplicates().copy()
+    search_df = name_map.copy()
     search_df["label"] = build_label(search_df)
 
     labels = sorted(search_df["label"].tolist())
@@ -387,8 +395,8 @@ else:
 # --------------------------------------------------
 # COMMON OUTPUT
 # --------------------------------------------------
-name1 = prices.loc[prices["ticker"] == ticker1, "name"].dropna().iloc[0] if not prices.loc[prices["ticker"] == ticker1, "name"].dropna().empty else ticker1
-name2 = prices.loc[prices["ticker"] == ticker2, "name"].dropna().iloc[0] if not prices.loc[prices["ticker"] == ticker2, "name"].dropna().empty else ticker2
+name1 = name_map.loc[name_map["ticker"] == ticker1, "name"].iloc[0] if not name_map.loc[name_map["ticker"] == ticker1].empty else ticker1
+name2 = name_map.loc[name_map["ticker"] == ticker2, "name"].iloc[0] if not name_map.loc[name_map["ticker"] == ticker2].empty else ticker2
 
 esg_row_1 = esg[esg["ticker"] == ticker1].iloc[0]
 esg_row_2 = esg[esg["ticker"] == ticker2].iloc[0]
@@ -428,7 +436,6 @@ with tab1:
 
     st.write("**Interpretation**")
     st.write(investment_description)
-
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -449,7 +456,6 @@ with tab1:
         "This table shows how much of the final portfolio is allocated to each stock, "
         "together with each stock’s historical return, risk, and sustainability rating."
     )
-
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -467,7 +473,6 @@ with tab1:
         f"The correlation between the two assets is **{stats['rho']:.3f}**, which measures how similarly they move over time. "
         f"Lower correlation generally means better diversification benefits."
     )
-
     st.markdown("</div>", unsafe_allow_html=True)
 
 with tab2:
@@ -504,7 +509,6 @@ with tab2:
         "The frontier shows all possible portfolios formed by combining the two selected stocks. "
         "The dark green diamond marks the portfolio with the highest utility given your risk tolerance and ESG preference."
     )
-
     st.markdown("</div>", unsafe_allow_html=True)
 
 with tab3:
@@ -526,7 +530,7 @@ with tab3:
 
     st.write("**How to read the rating scale**")
     st.write(
-        "We first convert the total ESG score into an average score by dividing by 3. "
+        "We convert the total ESG score into an average score by dividing by 3. "
         "That average score is then mapped to the sustainability scale: "
         "AAA = 8.6–10.0, AA = 7.1–8.5, A = 5.7–7.0, BBB = 4.3–5.6, BB = 2.9–4.2, B = 1.4–2.8, CCC = 0.0–1.3."
     )
@@ -535,5 +539,4 @@ with tab3:
         f"Based on your chosen ESG focus, **{name1}** and **{name2}** were evaluated using a preference-weighted ESG score. "
         f"The final portfolio itself scores **{portfolio_esg_mean:.2f}**, corresponding to **{portfolio_rating} ({portfolio_level})**."
     )
-
     st.markdown("</div>", unsafe_allow_html=True)
