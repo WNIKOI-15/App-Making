@@ -28,27 +28,13 @@ def go_to(page_name: str):
     st.session_state.page = page_name
     st.rerun()
 
-def render_brand_header(show_tagline=True):
-    col1, col2 = st.columns([1.1, 5])
-
-    with col1:
-        st.image(logo, width=120)
-
-    with col2:
-        st.markdown('<div class="main-title">Let it grow</div>', unsafe_allow_html=True)
-        if show_tagline:
-            st.markdown(
-                '<div class="subtitle">Grow your wealth with purpose through sustainable portfolio design.</div>',
-                unsafe_allow_html=True
-            )
-
 # --------------------------------------------------
 # STYLING
 # --------------------------------------------------
 st.markdown("""
 <style>
     .stApp, .stApp > header, .main, .block-container {
-        background: linear-gradient(180deg, #f4f9ff 0%, #eef8f1 100%) !important;
+        background: linear-gradient(180deg, #f4f9ff 0%, #eef6fb 55%, #eef8f1 100%) !important;
     }
 
     body, .stApp, .stMarkdown, .stMarkdown *, div, p, h1, h2, h3, h4, h5, h6, span, li,
@@ -69,19 +55,22 @@ st.markdown("""
         margin-bottom: 1.2rem;
     }
 
-    .section-card,
-    .home-card,
-    div[style*="background: white"],
-    div[style*="background-color: white"] {
+    .page-panel {
+        background: rgba(255,255,255,0.72);
+        border: 1px solid #d7e4f2;
+        border-radius: 18px;
+        padding: 18px 22px;
+        box-shadow: 0 6px 18px rgba(11, 92, 173, 0.06);
+        margin-bottom: 18px;
+        backdrop-filter: blur(4px);
+    }
+
+    .home-card {
         background-color: white !important;
         border: 1px solid #d7e4f2 !important;
         border-radius: 18px !important;
         padding: 20px 24px !important;
         box-shadow: 0 6px 18px rgba(11, 92, 173, 0.08) !important;
-        color: #17324d !important;
-    }
-
-    .home-card {
         min-height: 250px;
     }
 
@@ -103,11 +92,25 @@ st.markdown("""
         min-height: 90px;
     }
 
+    .top-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .soft-rule {
+        height: 1px;
+        background: linear-gradient(90deg, rgba(11,92,173,0.0), rgba(11,92,173,0.28), rgba(11,92,173,0.0));
+        margin: 0.6rem 0 1.1rem 0;
+        border: none;
+    }
+
     .stButton > button {
         background: linear-gradient(90deg, #0b5cad, #2f8f3a) !important;
         color: white !important;
         border: none !important;
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         font-weight: 700 !important;
         padding: 0.65rem 1rem !important;
         width: 100% !important;
@@ -119,7 +122,7 @@ st.markdown("""
     }
 
     div[data-testid="stMetric"] {
-        background-color: white !important;
+        background-color: rgba(255,255,255,0.92) !important;
         border: 1px solid #d7e4f2 !important;
         border-radius: 14px !important;
         padding: 14px !important;
@@ -130,7 +133,7 @@ st.markdown("""
     .stNumberInput > div > div > input,
     .stSelectbox > div > div,
     textarea {
-        background-color: white !important;
+        background-color: rgba(255,255,255,0.95) !important;
         border: 1px solid #d7e4f2 !important;
         border-radius: 10px !important;
         color: #17324d !important;
@@ -154,7 +157,7 @@ st.markdown("""
 
     .streamlit-expanderHeader,
     .streamlit-expanderContent {
-        background-color: white !important;
+        background-color: rgba(255,255,255,0.92) !important;
         color: #17324d !important;
         border: 1px solid #d7e4f2 !important;
         border-radius: 12px !important;
@@ -455,15 +458,29 @@ def plot_esg_pie(ax, row, title):
     else:
         values = [v / total for v in values]
 
-    colors = ["#66bb6a", "#42a5f5", "#ffa726"]
+    colors = ["#2f8f3a", "#0b5cad", "#6bb8ff"]
     ax.pie(values, labels=labels, autopct="%1.0f%%", startangle=90, colors=colors, textprops={"fontsize": 10})
     ax.set_title(title, fontsize=12, fontweight="bold")
 
 def render_back_button():
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    if st.button("⬅ Back to Home"):
-        go_to("home")
-    st.markdown("</div>", unsafe_allow_html=True)
+    left, right = st.columns([1.2, 6])
+    with left:
+        if st.button("⬅ Back to Home"):
+            go_to("home")
+    with right:
+        st.markdown("<div class='soft-rule'></div>", unsafe_allow_html=True)
+
+def render_brand_header(show_tagline=True):
+    col1, col2 = st.columns([1.1, 5])
+    with col1:
+        st.image(logo, width=120)
+    with col2:
+        st.markdown('<div class="main-title">Let it grow</div>', unsafe_allow_html=True)
+        if show_tagline:
+            st.markdown(
+                '<div class="subtitle">Grow your wealth with purpose through sustainable portfolio design.</div>',
+                unsafe_allow_html=True
+            )
 
 def render_outputs(
     ticker1, ticker2, stats, result, r_free, esg_focus,
@@ -490,8 +507,6 @@ def render_outputs(
     tab1, tab2, tab3 = st.tabs(["📊 Portfolio Results", "📈 Visualisation", "🏢 ESG Overview"])
 
     with tab1:
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
-        st.subheader("Portfolio Recommendation")
         st.info(summary_text)
 
         col1, col2, col3, col4 = st.columns(4)
@@ -500,13 +515,10 @@ def render_outputs(
         col3.metric("Sharpe Ratio", f"{sharpe_ratio:.3f}")
         col4.metric("Portfolio ESG Rating", f"{portfolio_rating} ({portfolio_level})")
 
-        st.write("**Interpretation**")
+        st.markdown("### Interpretation")
         st.write(investment_description)
-        st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
-        st.subheader("Optimized Portfolio Composition")
-
+        st.markdown("### Optimized Portfolio Composition")
         weights_df = pd.DataFrame({
             "Asset": [name1, name2],
             "Ticker": [ticker1, ticker2],
@@ -522,11 +534,8 @@ def render_outputs(
             "This table shows how much of the final portfolio is allocated to each stock, "
             "together with each stock’s CAGR-based return estimate, annualized volatility, and sustainability rating."
         )
-        st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
-        st.subheader("What the Asset Statistics Mean")
-
+        st.markdown("### What the Asset Statistics Mean")
         st.write(
             f"**{name1}** has an estimated annual return of **{stats['r1']*100:.2f}%**, measured using CAGR over the sample period, "
             f"and annual volatility of **{stats['sd1']*100:.2f}%**. Its ESG profile translates into a **{rating1} ({level1})** rating."
@@ -539,47 +548,42 @@ def render_outputs(
             f"The correlation between the two assets is **{stats['rho']:.3f}**, which measures how similarly they move over time. "
             f"Lower correlation generally means better diversification benefits."
         )
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with tab2:
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
-        st.subheader("Portfolio Frontier")
+        st.markdown("### Portfolio Frontier")
 
         fig, ax = plt.subplots(figsize=(10, 6))
         fig.patch.set_facecolor("white")
-        ax.set_facecolor("#fbfffc")
+        ax.set_facecolor("#f7fbff")
 
         ax.plot(
             result["portfolio_risks"],
             result["portfolio_returns"],
-            color="#2e7d32",
+            color="#0b5cad",
             linewidth=2.8,
             label="Portfolio Frontier"
         )
 
-        ax.scatter(stats["sd1"], stats["r1"], color="#81c784", s=130, label=name1, zorder=5)
-        ax.scatter(stats["sd2"], stats["r2"], color="#388e3c", s=130, label=name2, zorder=5)
-        ax.scatter(result["risk_opt"], result["ret_opt"], color="#1b5e20", s=220, marker="D", label="Optimal Portfolio", zorder=6)
+        ax.scatter(stats["sd1"], stats["r1"], color="#6bb8ff", s=130, label=name1, zorder=5)
+        ax.scatter(stats["sd2"], stats["r2"], color="#2f8f3a", s=130, label=name2, zorder=5)
+        ax.scatter(result["risk_opt"], result["ret_opt"], color="#17324d", s=220, marker="D", label="Optimal Portfolio", zorder=6)
 
-        ax.set_title("Risk-Return Frontier", fontsize=14, color="#1b5e20", fontweight="bold")
+        ax.set_title("Risk-Return Frontier", fontsize=14, color="#17324d", fontweight="bold")
         ax.set_xlabel("Risk (Standard Deviation)")
         ax.set_ylabel("Expected Return")
         ax.xaxis.set_major_formatter(mtick.PercentFormatter(1.0))
         ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
-        ax.grid(True, alpha=0.25)
+        ax.grid(True, alpha=0.25, color="#b9d3ec")
         ax.legend()
 
         st.pyplot(fig)
 
         st.write(
             "The frontier shows all possible portfolios formed by combining the two selected stocks. "
-            "The dark green diamond marks the portfolio with the highest utility given your risk tolerance and ESG preference."
+            "The dark blue diamond marks the portfolio with the highest utility given your risk tolerance and ESG preference."
         )
-        st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
-        st.subheader("ESG Weight Composition of Each Stock")
-
+        st.markdown("### ESG Weight Composition of Each Stock")
         fig2, axes = plt.subplots(1, 2, figsize=(12, 5))
         plot_esg_pie(axes[0], esg_row_1, f"{name1} ESG Weight Mix")
         plot_esg_pie(axes[1], esg_row_2, f"{name2} ESG Weight Mix")
@@ -588,11 +592,9 @@ def render_outputs(
         st.write(
             "These pie charts show how each stock’s ESG framework is distributed across Environmental, Social, and Governance factors."
         )
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with tab3:
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
-        st.subheader("ESG Overview")
+        st.markdown("### ESG Overview")
 
         esg_display = pd.DataFrame({
             "Asset": [name1, name2],
@@ -618,7 +620,6 @@ def render_outputs(
             f"Based on your chosen ESG focus, **{name1}** and **{name2}** were evaluated using a preference-weighted ESG score. "
             f"The final portfolio itself scores **{portfolio_esg_mean:.2f}**, corresponding to **{portfolio_rating} ({portfolio_level})**."
         )
-        st.markdown("</div>", unsafe_allow_html=True)
 
 # --------------------------------------------------
 # HOME PAGE
@@ -627,7 +628,7 @@ if st.session_state.page == "home":
     render_brand_header(show_tagline=False)
 
     st.markdown("""
-        <div style="text-align: center; padding: 1.5rem 0 1rem 0;">
+        <div style="text-align: center; padding: 1.2rem 0 1rem 0;">
             <div style="font-size: 2.8rem; font-weight: 800; color: #0b5cad; margin-bottom: 0.5rem;">
                 Let your investments grow with purpose.
             </div>
@@ -641,7 +642,7 @@ if st.session_state.page == "home":
 
     with col_left:
         st.markdown("""
-            <div style="background: white; border-radius: 16px; padding: 1.5rem; border: 1px solid #d7e4f2; height: 100%;">
+            <div class="page-panel">
                 <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">🌍</div>
                 <h3 style="color: #17324d; margin-bottom: 0.5rem;">The climate transition is here</h3>
                 <p style="color: #48637d; line-height: 1.4;">
@@ -654,7 +655,7 @@ if st.session_state.page == "home":
 
     with col_right:
         st.markdown("""
-            <div style="background: white; border-radius: 16px; padding: 1.5rem; border: 1px solid #d7e4f2; height: 100%;">
+            <div class="page-panel">
                 <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">📈</div>
                 <h3 style="color: #17324d; margin-bottom: 0.5rem;">Retail investors demand more</h3>
                 <p style="color: #48637d; line-height: 1.4;">
@@ -666,8 +667,8 @@ if st.session_state.page == "home":
         """, unsafe_allow_html=True)
 
     st.markdown("""
-        <div style="background: #eef6ff; border-radius: 12px; padding: 1rem; text-align: center; margin: 1rem 0; border: 1px solid #bfd8f5;">
-            <span style="color: #17324d;">👇 Choose one of the three tools below to start building your sustainable portfolio 👇</span>
+        <div class="page-panel" style="text-align:center; margin-top: 0.8rem;">
+            👇 Choose one of the three tools below to start building your sustainable portfolio 👇
         </div>
     """, unsafe_allow_html=True)
 
@@ -712,7 +713,7 @@ if st.session_state.page == "home":
 
     with b1:
         st.markdown("""
-        <div style="background: white; border-radius: 12px; padding: 1rem; text-align: center; border: 1px solid #d7e4f2;">
+        <div class="page-panel" style="text-align: center;">
             <div style="font-size: 1.8rem;">🎯</div>
             <div style="font-weight: 600; margin: 0.5rem 0; color: #17324d;">Personalised</div>
             <div style="font-size: 0.85rem; color: #64748b;">Adjust risk, ESG focus, and rate</div>
@@ -721,7 +722,7 @@ if st.session_state.page == "home":
 
     with b2:
         st.markdown("""
-        <div style="background: white; border-radius: 12px; padding: 1rem; text-align: center; border: 1px solid #d7e4f2;">
+        <div class="page-panel" style="text-align: center;">
             <div style="font-size: 1.8rem;">📈</div>
             <div style="font-weight: 600; margin: 0.5rem 0; color: #17324d;">Modern Theory</div>
             <div style="font-size: 0.85rem; color: #64748b;">Efficient frontier + utility max</div>
@@ -730,7 +731,7 @@ if st.session_state.page == "home":
 
     with b3:
         st.markdown("""
-        <div style="background: white; border-radius: 12px; padding: 1rem; text-align: center; border: 1px solid #d7e4f2;">
+        <div class="page-panel" style="text-align: center;">
             <div style="font-size: 1.8rem;">🌍</div>
             <div style="font-weight: 600; margin: 0.5rem 0; color: #17324d;">Real ESG data</div>
             <div style="font-size: 0.85rem; color: #64748b;">S&P500 E/S/G scores</div>
@@ -739,7 +740,7 @@ if st.session_state.page == "home":
 
     with b4:
         st.markdown("""
-        <div style="background: white; border-radius: 12px; padding: 1rem; text-align: center; border: 1px solid #d7e4f2;">
+        <div class="page-panel" style="text-align: center;">
             <div style="font-size: 1.8rem;">⚡</div>
             <div style="font-weight: 600; margin: 0.5rem 0; color: #17324d;">Interactive</div>
             <div style="font-size: 0.85rem; color: #64748b;">Works on any device</div>
@@ -776,7 +777,7 @@ elif st.session_state.page == "recommendation":
     render_brand_header()
     render_back_button()
 
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="page-panel">', unsafe_allow_html=True)
     st.subheader("Recommendation Engine")
 
     col1, col2, col3 = st.columns(3)
@@ -821,7 +822,7 @@ elif st.session_state.page == "recommendation":
         if stats is None:
             continue
 
-            esg1 = float(esg_pref.loc[esg_pref["ticker"] == t1, "preference_score"].iloc[0])
+        esg1 = float(esg_pref.loc[esg_pref["ticker"] == t1, "preference_score"].iloc[0])
         esg2 = float(esg_pref.loc[esg_pref["ticker"] == t2, "preference_score"].iloc[0])
 
         result = optimize_two_asset_portfolio(
@@ -863,7 +864,7 @@ elif st.session_state.page == "sp500":
     render_brand_header()
     render_back_button()
 
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="page-panel">', unsafe_allow_html=True)
     st.subheader("S&P500 Stocks Comparison")
 
     search_df = name_map.copy()
@@ -936,7 +937,7 @@ elif st.session_state.page == "custom":
     render_brand_header()
     render_back_button()
 
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="page-panel">', unsafe_allow_html=True)
     st.subheader("Advanced Custom Portfolio Generator")
 
     c1, c2, c3 = st.columns(3)
@@ -951,7 +952,7 @@ elif st.session_state.page == "custom":
     with c3:
         r_free = st.number_input("Risk-Free Rate (%)", min_value=0.0, max_value=15.0, value=2.0, step=0.1, key="custom_rf") / 100
 
-    st.markdown("---")
+    st.markdown("<div class='soft-rule'></div>", unsafe_allow_html=True)
 
     a1, a2 = st.columns(2)
 
