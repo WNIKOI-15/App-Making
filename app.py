@@ -4,13 +4,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 from itertools import combinations
+from PIL import Image
 
 # --------------------------------------------------
 # PAGE CONFIG
 # --------------------------------------------------
+logo = Image.open("let_it_grow_logo.png")
+
 st.set_page_config(
-    page_title="GreenVest Portfolio Optimizer",
-    page_icon="🌿",
+    page_title="Let it grow",
+    page_icon=logo,
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -25,76 +28,146 @@ def go_to(page_name: str):
     st.session_state.page = page_name
     st.rerun()
 
+def render_brand_header(show_tagline=True):
+    col1, col2 = st.columns([1.1, 5])
+
+    with col1:
+        st.image(logo, width=120)
+
+    with col2:
+        st.markdown('<div class="main-title">Let it grow</div>', unsafe_allow_html=True)
+        if show_tagline:
+            st.markdown(
+                '<div class="subtitle">Grow your wealth with purpose through sustainable portfolio design.</div>',
+                unsafe_allow_html=True
+            )
+
 # --------------------------------------------------
 # STYLING
 # --------------------------------------------------
 st.markdown("""
 <style>
-    .stApp {
-        background: linear-gradient(180deg, #f4fbf6 0%, #e8f5e9 100%);
+    .stApp, .stApp > header, .main, .block-container {
+        background: linear-gradient(180deg, #f4f9ff 0%, #eef8f1 100%) !important;
     }
+
+    body, .stApp, .stMarkdown, .stMarkdown *, div, p, h1, h2, h3, h4, h5, h6, span, li,
+    .stText, .stMetric, .stMetric label, .stMetric div {
+        color: #17324d !important;
+    }
+
     .main-title {
-        font-size: 2.8rem;
+        font-size: 2.9rem;
         font-weight: 800;
-        color: #1b5e20;
+        color: #0b5cad !important;
         margin-bottom: 0.15rem;
     }
+
     .subtitle {
         font-size: 1.08rem;
-        color: #2e7d32;
+        color: #2f6b3b !important;
         margin-bottom: 1.2rem;
     }
-    .section-card {
-        background-color: white;
-        border: 1px solid #d0e8d4;
-        border-radius: 18px;
-        padding: 20px 24px;
-        box-shadow: 0 4px 14px rgba(27, 94, 32, 0.08);
-        margin-bottom: 16px;
+
+    .section-card,
+    .home-card,
+    div[style*="background: white"],
+    div[style*="background-color: white"] {
+        background-color: white !important;
+        border: 1px solid #d7e4f2 !important;
+        border-radius: 18px !important;
+        padding: 20px 24px !important;
+        box-shadow: 0 6px 18px rgba(11, 92, 173, 0.08) !important;
+        color: #17324d !important;
     }
+
     .home-card {
-        background-color: white;
-        border: 1px solid #d0e8d4;
-        border-radius: 20px;
-        padding: 24px;
-        box-shadow: 0 4px 14px rgba(27, 94, 32, 0.08);
         min-height: 250px;
     }
+
     .home-icon {
-        font-size: 2.4rem;
+        font-size: 2.5rem;
         margin-bottom: 0.5rem;
     }
+
     .home-title {
         font-size: 1.3rem;
         font-weight: 700;
-        color: #1b5e20;
-        margin-bottom: 0.4rem;
+        color: #0b5cad !important;
+        margin-bottom: 0.45rem;
     }
+
     .home-text {
-        color: #355e3b;
-        font-size: 0.98rem;
+        color: #48637d !important;
+        font-size: 0.96rem;
         min-height: 90px;
     }
-    div[data-testid="stMetric"] {
-        background-color: #ffffff;
-        border: 1px solid #dceedd;
-        padding: 14px;
-        border-radius: 16px;
-        box-shadow: 0 3px 10px rgba(27, 94, 32, 0.05);
-    }
+
     .stButton > button {
-        background: linear-gradient(90deg, #2e7d32, #43a047);
-        color: white;
-        border: none;
-        border-radius: 10px;
-        font-weight: 700;
-        padding: 0.6rem 1rem;
-        width: 100%;
+        background: linear-gradient(90deg, #0b5cad, #2f8f3a) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        padding: 0.65rem 1rem !important;
+        width: 100% !important;
     }
+
     .stButton > button:hover {
-        background: linear-gradient(90deg, #1b5e20, #2e7d32);
-        color: white;
+        background: linear-gradient(90deg, #094b8d, #26752f) !important;
+        color: white !important;
     }
+
+    div[data-testid="stMetric"] {
+        background-color: white !important;
+        border: 1px solid #d7e4f2 !important;
+        border-radius: 14px !important;
+        padding: 14px !important;
+        box-shadow: 0 4px 12px rgba(11, 92, 173, 0.06) !important;
+    }
+
+    .stTextInput > div > div > input,
+    .stNumberInput > div > div > input,
+    .stSelectbox > div > div,
+    textarea {
+        background-color: white !important;
+        border: 1px solid #d7e4f2 !important;
+        border-radius: 10px !important;
+        color: #17324d !important;
+    }
+
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 10px;
+        padding: 8px 16px;
+        background-color: #edf4fb;
+        color: #4b6580 !important;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background-color: #0b5cad !important;
+        color: white !important;
+    }
+
+    .streamlit-expanderHeader,
+    .streamlit-expanderContent {
+        background-color: white !important;
+        color: #17324d !important;
+        border: 1px solid #d7e4f2 !important;
+        border-radius: 12px !important;
+    }
+
+    div[data-baseweb="notification"] {
+        background: #eef6ff !important;
+        border: 1px solid #bfd8f5 !important;
+        border-radius: 14px !important;
+    }
+
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -356,7 +429,7 @@ def get_esg_focus_weights(esg_focus):
         return 0.15, 0.7, 0.15, 0.85
     elif esg_focus == "Governance":
         return 0.15, 0.15, 0.7, 0.85
-    else:  # Pure Financials Focus
+    else:
         return 1/3, 1/3, 1/3, 0.0
 
 def add_preference_scores(esg_df, esg_focus):
@@ -551,55 +624,156 @@ def render_outputs(
 # HOME PAGE
 # --------------------------------------------------
 if st.session_state.page == "home":
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.subheader("Choose a workflow")
-    st.write(
-        "Select one of the three tools below to explore sustainable portfolio construction."
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
+    render_brand_header(show_tagline=False)
 
+    st.markdown("""
+        <div style="text-align: center; padding: 1.5rem 0 1rem 0;">
+            <div style="font-size: 2.8rem; font-weight: 800; color: #0b5cad; margin-bottom: 0.5rem;">
+                Let your investments grow with purpose.
+            </div>
+            <div style="font-size: 1.1rem; color: #48637d; max-width: 760px; margin: 0 auto;">
+                Build a personalised portfolio that balances financial returns, risk, and ESG values through real S&amp;P500 data and portfolio optimization.
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    col_left, col_right = st.columns(2)
+
+    with col_left:
+        st.markdown("""
+            <div style="background: white; border-radius: 16px; padding: 1.5rem; border: 1px solid #d7e4f2; height: 100%;">
+                <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">🌍</div>
+                <h3 style="color: #17324d; margin-bottom: 0.5rem;">The climate transition is here</h3>
+                <p style="color: #48637d; line-height: 1.4;">
+                Investors are shifting focus – from simply reducing emissions to actively allocating capital 
+                toward companies that are well positioned for a low-carbon future. But how do you know which 
+                stocks truly align with your values without sacrificing returns?
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with col_right:
+        st.markdown("""
+            <div style="background: white; border-radius: 16px; padding: 1.5rem; border: 1px solid #d7e4f2; height: 100%;">
+                <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">📈</div>
+                <h3 style="color: #17324d; margin-bottom: 0.5rem;">Retail investors demand more</h3>
+                <p style="color: #48637d; line-height: 1.4;">
+                Retail investors increasingly want their investments to reflect their ESG concerns. 
+                Let it grow gives you the tools – powered by real S&P500 ESG data and modern portfolio theory – 
+                to make informed, sustainable choices without ignoring risk-adjusted returns.
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <div style="background: #eef6ff; border-radius: 12px; padding: 1rem; text-align: center; margin: 1rem 0; border: 1px solid #bfd8f5;">
+            <span style="color: #17324d;">👇 Choose one of the three tools below to start building your sustainable portfolio 👇</span>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("## Choose how you want to grow")
     c1, c2, c3 = st.columns(3)
 
     with c1:
-        st.markdown('<div class="home-card">', unsafe_allow_html=True)
-        st.markdown('<div class="home-icon">🤖</div>', unsafe_allow_html=True)
-        st.markdown('<div class="home-title">Recommendation Engine</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="home-text">The app selects two suitable stocks automatically based on your ESG focus, risk tolerance, and risk-free rate.</div>',
-            unsafe_allow_html=True
-        )
-        if st.button("Open Recommendation Engine"):
+        st.markdown("""
+        <div class="home-card" style="text-align: center;">
+            <div class="home-icon">🤖</div>
+            <div class="home-title">Recommendation Engine</div>
+            <div class="home-text">The app selects two suitable stocks automatically based on your ESG focus, risk tolerance, and risk-free rate.</div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Open Recommendation Engine", key="rec_home", use_container_width=True):
             go_to("recommendation")
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with c2:
-        st.markdown('<div class="home-card">', unsafe_allow_html=True)
-        st.markdown('<div class="home-icon">📊</div>', unsafe_allow_html=True)
-        st.markdown('<div class="home-title">S&P500 Stocks Comparison</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="home-text">Choose any two S&P500 stocks from the dataset and compare them using return, risk, correlation, and ESG characteristics.</div>',
-            unsafe_allow_html=True
-        )
-        if st.button("Open S&P500 Comparison"):
+        st.markdown("""
+        <div class="home-card" style="text-align: center;">
+            <div class="home-icon">📊</div>
+            <div class="home-title">S&P500 Stocks Comparison</div>
+            <div class="home-text">Choose any two S&P500 stocks from the dataset and compare them using return, risk, correlation, and ESG characteristics.</div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Open S&P500 Comparison", key="sp_home", use_container_width=True):
             go_to("sp500")
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with c3:
-        st.markdown('<div class="home-card">', unsafe_allow_html=True)
-        st.markdown('<div class="home-icon">🛠️</div>', unsafe_allow_html=True)
-        st.markdown('<div class="home-title">Advanced Custom Portfolio Generator</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="home-text">Manually enter two custom assets and all portfolio parameters to generate a fully custom optimized portfolio.</div>',
-            unsafe_allow_html=True
-        )
-        if st.button("Open Custom Generator"):
+        st.markdown("""
+        <div class="home-card" style="text-align: center;">
+            <div class="home-icon">🛠️</div>
+            <div class="home-title">Advanced Custom Generator</div>
+            <div class="home-text">Manually enter two custom assets and all portfolio parameters to generate a fully custom optimised portfolio.</div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Open Custom Generator", key="custom_home", use_container_width=True):
             go_to("custom")
-        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("## Why Let it grow?")
+    b1, b2, b3, b4 = st.columns(4)
+
+    with b1:
+        st.markdown("""
+        <div style="background: white; border-radius: 12px; padding: 1rem; text-align: center; border: 1px solid #d7e4f2;">
+            <div style="font-size: 1.8rem;">🎯</div>
+            <div style="font-weight: 600; margin: 0.5rem 0; color: #17324d;">Personalised</div>
+            <div style="font-size: 0.85rem; color: #64748b;">Adjust risk, ESG focus, and rate</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with b2:
+        st.markdown("""
+        <div style="background: white; border-radius: 12px; padding: 1rem; text-align: center; border: 1px solid #d7e4f2;">
+            <div style="font-size: 1.8rem;">📈</div>
+            <div style="font-weight: 600; margin: 0.5rem 0; color: #17324d;">Modern Theory</div>
+            <div style="font-size: 0.85rem; color: #64748b;">Efficient frontier + utility max</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with b3:
+        st.markdown("""
+        <div style="background: white; border-radius: 12px; padding: 1rem; text-align: center; border: 1px solid #d7e4f2;">
+            <div style="font-size: 1.8rem;">🌍</div>
+            <div style="font-weight: 600; margin: 0.5rem 0; color: #17324d;">Real ESG data</div>
+            <div style="font-size: 0.85rem; color: #64748b;">S&P500 E/S/G scores</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with b4:
+        st.markdown("""
+        <div style="background: white; border-radius: 12px; padding: 1rem; text-align: center; border: 1px solid #d7e4f2;">
+            <div style="font-size: 1.8rem;">⚡</div>
+            <div style="font-weight: 600; margin: 0.5rem 0; color: #17324d;">Interactive</div>
+            <div style="font-size: 0.85rem; color: #64748b;">Works on any device</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("## Three ways to build your Let it grow portfolio")
+    with st.expander("🤖 Recommendation Engine – fully automated"):
+        st.write("""
+        - We analyse all S&P500 stocks using your selected ESG focus.  
+        - A scoring function selects the 10 most promising stocks.  
+        - Every pair is evaluated, and the pair that gives you the highest utility is recommended.  
+        - You only set your preferences – the app does the rest.
+        """)
+
+    with st.expander("📊 S&P500 Stocks Comparison – pick any two"):
+        st.write("""
+        - Choose any two S&P500 stocks by name or ticker.  
+        - The app fetches returns, volatilities, correlation, and ESG scores.  
+        - It then draws the efficient frontier and finds the optimal blend for your utility.
+        """)
+
+    with st.expander("🛠️ Advanced Custom Generator – full control"):
+        st.write("""
+        - Define every parameter manually: return, risk, correlation, ESG scores, and internal E/S/G weights.  
+        - No dependency on the dataset – analyse any two assets you want.  
+        - Ideal for testing hypothetical or classroom portfolios.
+        """)
 
 # --------------------------------------------------
 # RECOMMENDATION PAGE
 # --------------------------------------------------
 elif st.session_state.page == "recommendation":
+    render_brand_header()
     render_back_button()
 
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -623,8 +797,6 @@ elif st.session_state.page == "recommendation":
     asset_summary = get_single_asset_summary_all(prices)
 
     universe = esg_pref.merge(asset_summary, on="ticker", how="inner")
-
-    # Cap expected return at 25%
     universe = universe[universe["expected_return"] <= 0.25].copy()
 
     if esg_focus == "Pure Financials Focus":
@@ -649,7 +821,7 @@ elif st.session_state.page == "recommendation":
         if stats is None:
             continue
 
-        esg1 = float(esg_pref.loc[esg_pref["ticker"] == t1, "preference_score"].iloc[0])
+            esg1 = float(esg_pref.loc[esg_pref["ticker"] == t1, "preference_score"].iloc[0])
         esg2 = float(esg_pref.loc[esg_pref["ticker"] == t2, "preference_score"].iloc[0])
 
         result = optimize_two_asset_portfolio(
@@ -669,7 +841,6 @@ elif st.session_state.page == "recommendation":
         st.stop()
 
     ticker1, ticker2, stats, result = best_pair
-
     name1 = get_asset_name(ticker1)
     name2 = get_asset_name(ticker2)
 
@@ -686,9 +857,10 @@ elif st.session_state.page == "recommendation":
     )
 
 # --------------------------------------------------
-# S&P500 COMPARISON PAGE
+# S&P500 PAGE
 # --------------------------------------------------
 elif st.session_state.page == "sp500":
+    render_brand_header()
     render_back_button()
 
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -758,9 +930,10 @@ elif st.session_state.page == "sp500":
     )
 
 # --------------------------------------------------
-# CUSTOM GENERATOR PAGE
+# CUSTOM PAGE
 # --------------------------------------------------
 elif st.session_state.page == "custom":
+    render_brand_header()
     render_back_button()
 
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -810,7 +983,6 @@ elif st.session_state.page == "custom":
 
     _, _, _, lambda_esg = get_esg_focus_weights(esg_focus)
 
-    # Preference score based on focus
     def custom_pref_score(env, soc, gov, esg_focus):
         if esg_focus == "Balanced ESG":
             return (env + soc + gov) / 3
