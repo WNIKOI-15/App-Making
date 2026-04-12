@@ -12,7 +12,7 @@ from PIL import Image
 logo = Image.open("let_it_grow_logo.png")
 
 st.set_page_config(
-    page_title="Let it grow",
+    page_title="Let It Grow",
     page_icon=logo,
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -43,10 +43,13 @@ st.markdown("""
     }
 
     .main-title {
-        font-size: 2.9rem;
-        font-weight: 800;
+        font-size: 3.35rem;
+        font-weight: 900;
         color: #0b5cad !important;
         margin-bottom: 0.15rem;
+        letter-spacing: 0.4px;
+        font-family: Georgia, "Times New Roman", serif;
+        text-shadow: 0 2px 0 rgba(255,255,255,0.55);
     }
 
     .subtitle {
@@ -92,13 +95,6 @@ st.markdown("""
         min-height: 90px;
     }
 
-    .top-nav {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 1rem;
-    }
-
     .soft-rule {
         height: 1px;
         background: linear-gradient(90deg, rgba(11,92,173,0.0), rgba(11,92,173,0.28), rgba(11,92,173,0.0));
@@ -112,8 +108,15 @@ st.markdown("""
         border: none !important;
         border-radius: 12px !important;
         font-weight: 700 !important;
-        padding: 0.65rem 1rem !important;
+        padding: 0.72rem 1rem !important;
         width: 100% !important;
+    }
+
+    .stButton > button *,
+    .stButton > button p,
+    .stButton > button span,
+    .stButton > button div {
+        color: white !important;
     }
 
     .stButton > button:hover {
@@ -280,22 +283,13 @@ def get_asset_name(ticker):
     match = name_map.loc[name_map["ticker"] == ticker, "name"]
     return match.iloc[0] if len(match) else ticker
 
-def compute_cagr(price_series, date_series):
+def compute_expected_return(price_series):
     if len(price_series) < 2:
         return np.nan
-    start_price = price_series.iloc[0]
-    end_price = price_series.iloc[-1]
-    start_date = date_series.iloc[0]
-    end_date = date_series.iloc[-1]
-
-    if start_price <= 0 or end_price <= 0 or end_date <= start_date:
+    returns = price_series.pct_change().dropna()
+    if len(returns) == 0:
         return np.nan
-
-    years = (end_date - start_date).days / 365.25
-    if years <= 0:
-        return np.nan
-
-    return (end_price / start_price) ** (1 / years) - 1
+    return returns.mean() * 12
 
 @st.cache_data
 def get_single_asset_summary_all(prices_df):
@@ -305,18 +299,18 @@ def get_single_asset_summary_all(prices_df):
         if len(df) < 12:
             continue
 
-        cagr = compute_cagr(df["price"].reset_index(drop=True), df["date"].reset_index(drop=True))
+        expected_return = compute_expected_return(df["price"].reset_index(drop=True))
         df["ret"] = df["price"].pct_change()
         df = df.dropna()
 
-        if len(df) < 12 or pd.isna(cagr):
+        if len(df) < 12 or pd.isna(expected_return):
             continue
 
         risk = df["ret"].std() * np.sqrt(12)
 
         summaries.append({
             "ticker": ticker,
-            "expected_return": cagr,
+            "expected_return": expected_return,
             "risk": risk
         })
 
@@ -329,8 +323,8 @@ def get_asset_stats(prices_df, ticker1, ticker2):
     if len(raw1) < 12 or len(raw2) < 12:
         return None
 
-    cagr1 = compute_cagr(raw1["price"].reset_index(drop=True), raw1["date"].reset_index(drop=True))
-    cagr2 = compute_cagr(raw2["price"].reset_index(drop=True), raw2["date"].reset_index(drop=True))
+    r1 = compute_expected_return(raw1["price"].reset_index(drop=True))
+    r2 = compute_expected_return(raw2["price"].reset_index(drop=True))
 
     df1 = raw1.rename(columns={"price": "price_1"})
     df2 = raw2.rename(columns={"price": "price_2"})
@@ -349,8 +343,8 @@ def get_asset_stats(prices_df, ticker1, ticker2):
 
     return {
         "merged": merged,
-        "r1": cagr1,
-        "r2": cagr2,
+        "r1": r1,
+        "r2": r2,
         "sd1": sd1,
         "sd2": sd2,
         "rho": rho
@@ -475,7 +469,7 @@ def render_brand_header(show_tagline=True):
     with col1:
         st.image(logo, width=120)
     with col2:
-        st.markdown('<div class="main-title">Let it grow</div>', unsafe_allow_html=True)
+        st.markdown('<div class="main-title">Let It Grow</div>', unsafe_allow_html=True)
         if show_tagline:
             st.markdown(
                 '<div class="subtitle">Grow your wealth with purpose through sustainable portfolio design.</div>',
@@ -532,16 +526,16 @@ def render_outputs(
 
         st.write(
             "This table shows how much of the final portfolio is allocated to each stock, "
-            "together with each stock’s CAGR-based return estimate, annualized volatility, and sustainability rating."
+            "together with each stock’s expected annual return estimate, annualized volatility, and sustainability rating."
         )
 
         st.markdown("### What the Asset Statistics Mean")
         st.write(
-            f"**{name1}** has an estimated annual return of **{stats['r1']*100:.2f}%**, measured using CAGR over the sample period, "
+            f"**{name1}** has an estimated annual return of **{stats['r1']*100:.2f}%**, based on the historical average monthly return, "
             f"and annual volatility of **{stats['sd1']*100:.2f}%**. Its ESG profile translates into a **{rating1} ({level1})** rating."
         )
         st.write(
-            f"**{name2}** has an estimated annual return of **{stats['r2']*100:.2f}%**, measured using CAGR over the sample period, "
+            f"**{name2}** has an estimated annual return of **{stats['r2']*100:.2f}%**, based on the historical average monthly return, "
             f"and annual volatility of **{stats['sd2']*100:.2f}%**. Its ESG profile translates into a **{rating2} ({level2})** rating."
         )
         st.write(
@@ -552,7 +546,7 @@ def render_outputs(
     with tab2:
         st.markdown("### Portfolio Frontier")
 
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(8, 4.8))
         fig.patch.set_facecolor("white")
         ax.set_facecolor("#f7fbff")
 
@@ -560,13 +554,13 @@ def render_outputs(
             result["portfolio_risks"],
             result["portfolio_returns"],
             color="#0b5cad",
-            linewidth=2.8,
+            linewidth=2.5,
             label="Portfolio Frontier"
         )
 
-        ax.scatter(stats["sd1"], stats["r1"], color="#6bb8ff", s=130, label=name1, zorder=5)
-        ax.scatter(stats["sd2"], stats["r2"], color="#2f8f3a", s=130, label=name2, zorder=5)
-        ax.scatter(result["risk_opt"], result["ret_opt"], color="#17324d", s=220, marker="D", label="Optimal Portfolio", zorder=6)
+        ax.scatter(stats["sd1"], stats["r1"], color="#6bb8ff", s=95, label=name1, zorder=5)
+        ax.scatter(stats["sd2"], stats["r2"], color="#2f8f3a", s=95, label=name2, zorder=5)
+        ax.scatter(result["risk_opt"], result["ret_opt"], color="#17324d", s=120, marker="D", label="Optimal Portfolio", zorder=6)
 
         ax.set_title("Risk-Return Frontier", fontsize=14, color="#17324d", fontweight="bold")
         ax.set_xlabel("Risk (Standard Deviation)")
@@ -574,7 +568,15 @@ def render_outputs(
         ax.xaxis.set_major_formatter(mtick.PercentFormatter(1.0))
         ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
         ax.grid(True, alpha=0.25, color="#b9d3ec")
-        ax.legend()
+        ax.legend(
+            loc="upper left",
+            frameon=True,
+            facecolor="white",
+            edgecolor="#bfd8f5",
+            fontsize=10,
+            markerscale=0.9,
+            scatterpoints=1
+        )
 
         st.pyplot(fig)
 
@@ -629,10 +631,10 @@ if st.session_state.page == "home":
 
     st.markdown("""
         <div style="text-align: center; padding: 1.2rem 0 1rem 0;">
-            <div style="font-size: 2.8rem; font-weight: 800; color: #0b5cad; margin-bottom: 0.5rem;">
-                Let your investments grow with purpose.
+            <div style="font-size: 3.0rem; font-weight: 900; color: #0b5cad; margin-bottom: 0.5rem; font-family: Georgia, 'Times New Roman', serif;">
+                Let It Grow
             </div>
-            <div style="font-size: 1.1rem; color: #48637d; max-width: 760px; margin: 0 auto;">
+            <div style="font-size: 1.15rem; color: #48637d; max-width: 760px; margin: 0 auto;">
                 Build a personalised portfolio that balances financial returns, risk, and ESG values through real S&amp;P500 data and portfolio optimization.
             </div>
         </div>
@@ -660,7 +662,7 @@ if st.session_state.page == "home":
                 <h3 style="color: #17324d; margin-bottom: 0.5rem;">Retail investors demand more</h3>
                 <p style="color: #48637d; line-height: 1.4;">
                 Retail investors increasingly want their investments to reflect their ESG concerns. 
-                Let it grow gives you the tools – powered by real S&P500 ESG data and modern portfolio theory – 
+                Let It Grow gives you the tools – powered by real S&P500 ESG data and modern portfolio theory – 
                 to make informed, sustainable choices without ignoring risk-adjusted returns.
                 </p>
             </div>
@@ -672,7 +674,7 @@ if st.session_state.page == "home":
         </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("## Choose how you want to grow")
+    st.markdown("## Choose How You Want To Grow")
     c1, c2, c3 = st.columns(3)
 
     with c1:
@@ -683,6 +685,7 @@ if st.session_state.page == "home":
             <div class="home-text">The app selects two suitable stocks automatically based on your ESG focus, risk tolerance, and risk-free rate.</div>
         </div>
         """, unsafe_allow_html=True)
+        st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
         if st.button("Open Recommendation Engine", key="rec_home", use_container_width=True):
             go_to("recommendation")
 
@@ -694,6 +697,7 @@ if st.session_state.page == "home":
             <div class="home-text">Choose any two S&P500 stocks from the dataset and compare them using return, risk, correlation, and ESG characteristics.</div>
         </div>
         """, unsafe_allow_html=True)
+        st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
         if st.button("Open S&P500 Comparison", key="sp_home", use_container_width=True):
             go_to("sp500")
 
@@ -705,10 +709,11 @@ if st.session_state.page == "home":
             <div class="home-text">Manually enter two custom assets and all portfolio parameters to generate a fully custom optimised portfolio.</div>
         </div>
         """, unsafe_allow_html=True)
+        st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
         if st.button("Open Custom Generator", key="custom_home", use_container_width=True):
             go_to("custom")
 
-    st.markdown("## Why Let it grow?")
+    st.markdown("## Why Let It Grow?")
     b1, b2, b3, b4 = st.columns(4)
 
     with b1:
@@ -747,7 +752,7 @@ if st.session_state.page == "home":
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("## Three ways to build your Let it grow portfolio")
+    st.markdown("## Three Ways To Build Your Let It Grow Portfolio")
     with st.expander("🤖 Recommendation Engine – fully automated"):
         st.write("""
         - We analyse all S&P500 stocks using your selected ESG focus.  
