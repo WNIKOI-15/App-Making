@@ -594,7 +594,6 @@ def render_outputs(
     with tab2:
         st.markdown("### Portfolio Frontier")
 
-        # Build efficient frontier branch only
         frontier_df = pd.DataFrame({
             "risk": result["portfolio_risks"],
             "ret": result["portfolio_returns"]
@@ -608,11 +607,10 @@ def render_outputs(
         y_min = min(stats["r1"], stats["r2"], result["ret_opt"]) * 0.75
         y_max = max(stats["r1"], stats["r2"], result["ret_opt"]) * 1.12
 
-        fig, ax = plt.subplots(figsize=(8.2, 5.2), dpi=170)
+        fig, ax = plt.subplots(figsize=(8.6, 5.4), dpi=170)
         fig.patch.set_facecolor("white")
         ax.set_facecolor("#fbfdff")
 
-        # Remove top/right spines for cleaner style
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.spines["left"].set_color("#0f2d68")
@@ -620,11 +618,10 @@ def render_outputs(
         ax.spines["left"].set_linewidth(1.5)
         ax.spines["bottom"].set_linewidth(1.5)
 
-        # Grid
         ax.grid(True, color="#c7d2e4", alpha=0.55, linewidth=0.8)
 
-        # Efficient frontier
-        ax.plot(
+        # Frontier line only
+        frontier_handle, = ax.plot(
             efficient_branch["risk"],
             efficient_branch["ret"],
             color="#4e9f58",
@@ -634,34 +631,32 @@ def render_outputs(
             zorder=2
         )
 
-        # Assets
-        ax.scatter(
+        # Use actual asset names in labels
+        asset1_handle = ax.scatter(
             stats["sd1"], stats["r1"],
             s=260, color="#1f66c2", edgecolor="#184d93", linewidth=1.2,
-            label="Asset 1", zorder=5
+            label=name1, zorder=5
         )
-        ax.scatter(
+        asset2_handle = ax.scatter(
             stats["sd2"], stats["r2"],
             s=260, color="#66a84f", edgecolor="#4c7e3b", linewidth=1.2,
-            label="Asset 2", zorder=5
+            label=name2, zorder=5
         )
-
-        # Optimal portfolio
-        ax.scatter(
+        opt_handle = ax.scatter(
             result["risk_opt"], result["ret_opt"],
             s=620, color="#0f3d8c", edgecolor="#0a2a60", linewidth=1.0,
             marker="*", label="Optimal Portfolio", zorder=6
         )
 
-        # Labels near points
+        # Point labels
         ax.annotate(
-            "Asset 1",
+            name1,
             (stats["sd1"], stats["r1"]),
-            xytext=(-18, 8), textcoords="offset points",
+            xytext=(-16, 8), textcoords="offset points",
             fontsize=12, color="#0f2d68", ha="right", va="center"
         )
         ax.annotate(
-            "Asset 2",
+            name2,
             (stats["sd2"], stats["r2"]),
             xytext=(12, 8), textcoords="offset points",
             fontsize=12, color="#3f7c39", ha="left", va="center"
@@ -673,30 +668,23 @@ def render_outputs(
             fontsize=15, color="#0f2d68", ha="left", va="center"
         )
 
-        # Title and labels
         ax.set_title("Risk-Return Frontier", fontsize=24, color="#0f2d68", fontweight="bold", pad=16)
         ax.set_xlabel("Risk (Standard Deviation)", fontsize=18, color="#0f2d68", labelpad=12)
         ax.set_ylabel("Expected Return", fontsize=18, color="#0f2d68", labelpad=14)
 
-        # Axis limits
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
 
-        # Ticks
         ax.xaxis.set_major_formatter(mtick.PercentFormatter(1.0, decimals=1))
         ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0, decimals=1))
         ax.tick_params(axis="both", labelsize=14, colors="#0f2d68", width=1.2, length=5)
 
-        # Legend order to match reference
-        handles, labels = ax.get_legend_handles_labels()
-        order_names = ["Asset 1", "Asset 2", "Optimal Portfolio", "Efficient Frontier"]
-        ordered_handles = [handles[labels.index(name)] for name in order_names if name in labels]
-        ordered_labels = [name for name in order_names if name in labels]
-
         legend = ax.legend(
-            ordered_handles,
-            ordered_labels,
+            handles=[asset1_handle, asset2_handle, opt_handle, frontier_handle],
+            labels=[name1, name2, "Optimal Portfolio", "Efficient Frontier"],
             loc="upper left",
+            bbox_to_anchor=(1.02, 1.0),
+            borderaxespad=0.0,
             frameon=True,
             facecolor="white",
             edgecolor="#b9c8df",
@@ -707,8 +695,8 @@ def render_outputs(
             handletextpad=0.45,
             markerscale=1.0
         )
-        for text, name in zip(legend.get_texts(), ordered_labels):
-            if name == "Efficient Frontier":
+        for text in legend.get_texts():
+            if text.get_text() == "Efficient Frontier":
                 text.set_color("#4e9f58")
             else:
                 text.set_color("#0f2d68")
@@ -967,6 +955,9 @@ elif st.session_state.page == "recommendation":
         stats = get_asset_stats(prices, t1, t2)
         if stats is None:
             continue
+
+            esg1 = float(esg_pref.loc[esg_pref["ticker"] == t1, "preference_score"].iloc[0])
+            esg2 = float(esg_pref.loc[esg_pref["ticker"] == t2, "preference_score"].iloc[0])
 
         esg1 = float(esg_pref.loc[esg_pref["ticker"] == t1, "preference_score"].iloc[0])
         esg2 = float(esg_pref.loc[esg_pref["ticker"] == t2, "preference_score"].iloc[0])
