@@ -183,17 +183,20 @@ st.markdown("""
         border-radius: 14px !important;
     }
 
-    /* Slider styling - green */
-    .stSlider [data-baseweb="slider"] > div > div:nth-child(1) {
-        background: #bbf7d0 !important;
+    /* Slider styling - single green bar, no highlight colors */
+    .stSlider [data-baseweb="slider"] > div {
+        background: transparent !important;
     }
-    .stSlider [data-baseweb="slider"] > div > div:nth-child(2) {
+    .stSlider [data-baseweb="slider"] > div > div {
+        background: #2f8f3a !important;
+    }
+    .stSlider [data-baseweb="slider"] > div > div > div {
         background: #2f8f3a !important;
     }
     .stSlider [role="slider"] {
         background: #2f8f3a !important;
         border: 2px solid #2f8f3a !important;
-        box-shadow: 0 0 0 3px rgba(47,143,58,0.16) !important;
+        box-shadow: none !important;
     }
     .stSlider [data-testid="stThumbValue"] {
         color: #2f8f3a !important;
@@ -581,7 +584,7 @@ def render_outputs(
     with tab2:
         st.markdown("### Portfolio Frontier")
 
-        fig, ax = plt.subplots(figsize=(5.12, 3.07))
+        fig, ax = plt.subplots(figsize=(4.1, 2.46))
         fig.patch.set_facecolor("white")
         ax.set_facecolor("#f7fbff")
 
@@ -589,33 +592,34 @@ def render_outputs(
             result["portfolio_risks"],
             result["portfolio_returns"],
             color="#0b5cad",
-            linewidth=2.2,
+            linewidth=2.0,
             label="Portfolio Frontier"
         )
 
-        ax.scatter(stats["sd1"], stats["r1"], color="#6bb8ff", s=70, label=name1, zorder=5)
-        ax.scatter(stats["sd2"], stats["r2"], color="#2f8f3a", s=70, label=name2, zorder=5)
-        ax.scatter(result["risk_opt"], result["ret_opt"], color="#17324d", s=80, marker="D", label="Optimal Portfolio", zorder=6)
+        ax.scatter(stats["sd1"], stats["r1"], color="#6bb8ff", s=55, label=name1, zorder=5)
+        ax.scatter(stats["sd2"], stats["r2"], color="#2f8f3a", s=55, label=name2, zorder=5)
+        ax.scatter(result["risk_opt"], result["ret_opt"], color="#17324d", s=60, marker="D", label="Optimal Portfolio", zorder=6)
 
-        ax.set_title("Risk-Return Frontier", fontsize=12, color="#17324d", fontweight="bold")
-        ax.set_xlabel("Risk (Standard Deviation)", fontsize=9)
-        ax.set_ylabel("Expected Return", fontsize=9)
+        ax.set_title("Risk-Return Frontier", fontsize=10, color="#17324d", fontweight="bold")
+        ax.set_xlabel("Risk (Standard Deviation)", fontsize=8)
+        ax.set_ylabel("Expected Return", fontsize=8)
         ax.xaxis.set_major_formatter(mtick.PercentFormatter(1.0, decimals=2))
         ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0, decimals=2))
-        ax.tick_params(axis="both", labelsize=6)
+        ax.tick_params(axis="both", labelsize=5)
         ax.grid(True, alpha=0.25, color="#b9d3ec")
         ax.legend(
             loc="upper left",
             frameon=True,
             facecolor="white",
             edgecolor="#bfd8f5",
-            fontsize=8,
-            markerscale=0.8,
+            fontsize=4,
+            markerscale=0.45,
             scatterpoints=1,
-            borderpad=0.6,
-            labelspacing=0.5,
-            handlelength=1.8,
-            handletextpad=0.6
+            borderpad=0.25,
+            labelspacing=0.25,
+            handlelength=1.0,
+            handletextpad=0.35,
+            borderaxespad=0.35
         )
 
         st.pyplot(fig)
