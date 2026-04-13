@@ -183,7 +183,7 @@ st.markdown("""
         border-radius: 14px !important;
     }
 
-    /* Slider styling - all green */
+    /* Slider styling */
     .stSlider [data-baseweb="slider"] > div {
         background: transparent !important;
     }
@@ -197,6 +197,13 @@ st.markdown("""
         box-shadow: none !important;
     }
     .stSlider [data-testid="stThumbValue"] {
+        color: #17324d !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .stSlider [data-testid="stTickBarMin"],
+    .stSlider [data-testid="stTickBarMax"] {
         color: #17324d !important;
         background: transparent !important;
         border: none !important;
@@ -594,13 +601,19 @@ def render_outputs(
     with tab2:
         st.markdown("### Portfolio Frontier")
 
-        frontier_df = pd.DataFrame({
-            "risk": result["portfolio_risks"],
-            "ret": result["portfolio_returns"]
-        }).sort_values("risk").reset_index(drop=True)
+        # Keep only the efficient upper branch and line only
+        returns_all = np.array(result["portfolio_returns"])
+        risks_all = np.array(result["portfolio_risks"])
+        min_var_idx = np.argmin(risks_all)
+        min_var_ret = returns_all[min_var_idx]
 
-        min_risk_idx = frontier_df["risk"].idxmin()
-        efficient_branch = frontier_df.loc[min_risk_idx:].copy()
+        efficient_mask = returns_all >= (min_var_ret - 1e-12)
+        efficient_risks = risks_all[efficient_mask]
+        efficient_returns = returns_all[efficient_mask]
+
+        order = np.argsort(efficient_risks)
+        efficient_risks = efficient_risks[order]
+        efficient_returns = efficient_returns[order]
 
         x_min = min(stats["sd1"], stats["sd2"], result["risk_opt"]) * 0.85
         x_max = max(stats["sd1"], stats["sd2"], result["risk_opt"]) * 1.08
@@ -620,10 +633,9 @@ def render_outputs(
 
         ax.grid(True, color="#c7d2e4", alpha=0.55, linewidth=0.8)
 
-        # Frontier line only
         frontier_handle, = ax.plot(
-            efficient_branch["risk"],
-            efficient_branch["ret"],
+            efficient_risks,
+            efficient_returns,
             color="#4e9f58",
             linewidth=4.0,
             solid_capstyle="round",
@@ -631,7 +643,6 @@ def render_outputs(
             zorder=2
         )
 
-        # Use actual asset names in labels
         asset1_handle = ax.scatter(
             stats["sd1"], stats["r1"],
             s=260, color="#1f66c2", edgecolor="#184d93", linewidth=1.2,
@@ -646,26 +657,6 @@ def render_outputs(
             result["risk_opt"], result["ret_opt"],
             s=620, color="#0f3d8c", edgecolor="#0a2a60", linewidth=1.0,
             marker="*", label="Optimal Portfolio", zorder=6
-        )
-
-        # Point labels
-        ax.annotate(
-            name1,
-            (stats["sd1"], stats["r1"]),
-            xytext=(-16, 8), textcoords="offset points",
-            fontsize=12, color="#0f2d68", ha="right", va="center"
-        )
-        ax.annotate(
-            name2,
-            (stats["sd2"], stats["r2"]),
-            xytext=(12, 8), textcoords="offset points",
-            fontsize=12, color="#3f7c39", ha="left", va="center"
-        )
-        ax.annotate(
-            "Optimal Portfolio",
-            (result["risk_opt"], result["ret_opt"]),
-            xytext=(18, -10), textcoords="offset points",
-            fontsize=15, color="#0f2d68", ha="left", va="center"
         )
 
         ax.set_title("Risk-Return Frontier", fontsize=24, color="#0f2d68", fontweight="bold", pad=16)
@@ -688,12 +679,12 @@ def render_outputs(
             frameon=True,
             facecolor="white",
             edgecolor="#b9c8df",
-            fontsize=13,
-            borderpad=0.8,
-            labelspacing=0.6,
-            handlelength=2.2,
-            handletextpad=0.45,
-            markerscale=1.0
+            fontsize=6.5,
+            borderpad=0.4,
+            labelspacing=0.3,
+            handlelength=1.3,
+            handletextpad=0.35,
+            markerscale=0.55
         )
         for text in legend.get_texts():
             if text.get_text() == "Efficient Frontier":
@@ -955,9 +946,6 @@ elif st.session_state.page == "recommendation":
         stats = get_asset_stats(prices, t1, t2)
         if stats is None:
             continue
-
-            esg1 = float(esg_pref.loc[esg_pref["ticker"] == t1, "preference_score"].iloc[0])
-            esg2 = float(esg_pref.loc[esg_pref["ticker"] == t2, "preference_score"].iloc[0])
 
         esg1 = float(esg_pref.loc[esg_pref["ticker"] == t1, "preference_score"].iloc[0])
         esg2 = float(esg_pref.loc[esg_pref["ticker"] == t2, "preference_score"].iloc[0])
