@@ -220,6 +220,7 @@ st.markdown("""
     .stSlider small,
     .stSlider div {
         color: #17324d !important;
+        background: transparent !important;
     }
 
     .stSlider *::selection {
@@ -350,18 +351,6 @@ def compute_expected_return(price_series):
     if len(returns) == 0:
         return np.nan
     return returns.mean() * 12
-
-def normalize_series(s):
-    s = pd.Series(s).astype(float)
-    s = s.replace([np.inf, -np.inf], np.nan)
-    if s.isna().all():
-        return pd.Series(np.zeros(len(s)), index=s.index)
-    s = s.fillna(s.median())
-    s_min = s.min()
-    s_max = s.max()
-    if np.isclose(s_max, s_min):
-        return pd.Series(np.ones(len(s)) * 0.5, index=s.index)
-    return (s - s_min) / (s_max - s_min)
 
 @st.cache_data
 def get_single_asset_summary_all(prices_df):
@@ -524,22 +513,29 @@ def get_esg_focus_weights(esg_focus):
     if esg_focus == "Balanced ESG":
         return 1/3, 1/3, 1/3, 0.75
     elif esg_focus == "Environmental":
-        return 0.75, 0.125, 0.125, 1.00
+        return 1.0, 0.0, 0.0, 1.00
     elif esg_focus == "Social":
-        return 0.125, 0.75, 0.125, 1.00
+        return 0.0, 1.0, 0.0, 1.00
     elif esg_focus == "Governance":
-        return 0.125, 0.125, 0.75, 1.00
+        return 0.0, 0.0, 1.0, 1.00
     else:
         return 1/3, 1/3, 1/3, 0.0
 
 def add_preference_scores(esg_df, esg_focus):
     env_weight, soc_weight, gov_weight, lambda_esg = get_esg_focus_weights(esg_focus)
     out = esg_df.copy()
-    out["preference_score"] = (
-        env_weight * out["environmental"] +
-        soc_weight * out["social"] +
-        gov_weight * out["governance"]
-    )
+
+    if esg_focus == "Balanced ESG":
+        out["preference_score"] = out["esg_mean_score"]
+    elif esg_focus == "Environmental":
+        out["preference_score"] = out["environmental"]
+    elif esg_focus == "Social":
+        out["preference_score"] = out["social"]
+    elif esg_focus == "Governance":
+        out["preference_score"] = out["governance"]
+    else:
+        out["preference_score"] = 0.0
+
     return out, lambda_esg
 
 def plot_esg_pie(ax, row, title):
@@ -559,73 +555,81 @@ def plot_esg_pie(ax, row, title):
     ax.pie(values, labels=labels, autopct="%1.0f%%", startangle=90, colors=colors, textprops={"fontsize": 10})
     ax.set_title(title, fontsize=12, fontweight="bold", color="#0f2d68")
 
-def build_recommendation_candidates(esg_pref, asset_summary, r_free, gamma, esg_focus):
-    universe = esg_pref.merge(asset_summary, on="ticker", how="inner").copy()
-    universe = universe.replace([np.inf, -np.inf], np.nan).dropna(
-        subset=["preference_score", "expected_return", "risk"]
-    )
+def build_recommendation_universe(esg_df, asset_summary, esg_focus):
+    universe = esg_df.merge(asset_summary, on="ticker", how="inner").copy()
+    universe = universe.replace([np.inf, -np.inf], np.nan)
+    universe = universe.dropna(subset=["expected_return", "risk"])
+
+    # Hard cap for realism across all modes
     universe = universe[universe["expected_return"] <= 0.25].copy()
-    universe = universe[universe["risk"] > 0].copy()
+
+    if esg_focus in ["Environmental", "Social", "Governance", "Balanced ESG"]:
+        # Minimum profitability requirement for ESG-driven modes
+        universe = universe[universe["expected_return"] >= 0.10].copy()
 
     if universe.empty:
         return universe
 
-    universe["excess_return"] = universe["expected_return"] - r_free
-    universe["sharpe_like"] = universe["excess_return"] / universe["risk"]
+    if esg_focus == "Environmental":
+        universe["priority_score"] = universe["environmental"]
+        universe = universe.sort_values(
+            ["priority_score", "expected_return", "esg_mean_score", "risk"],
+            ascending=[False, False, False, True]
+        ).copy()
 
-    pref_n = normalize_series(universe["preference_score"])
-    ret_n = normalize_series(universe["expected_return"])
-    excess_n = normalize_series(universe["excess_return"])
-    sharpe_n = normalize_series(universe["sharpe_like"])
-    risk_n = normalize_series(universe["risk"])
-    low_risk_n = 1 - risk_n
+    elif esg_focus == "Social":
+        universe["priority_score"] = universe["social"]
+        universe = universe.sort_values(
+            ["priority_score", "expected_return", "esg_mean_score", "risk"],
+            ascending=[False, False, False, True]
+        ).copy()
 
-    gamma_scaled = (gamma - 0.5) / 9.5
-    gamma_scaled = min(max(gamma_scaled, 0), 1)
+    elif esg_focus == "Governance":
+        universe["priority_score"] = universe["governance"]
+        universe = universe.sort_values(
+            ["priority_score", "expected_return", "esg_mean_score", "risk"],
+            ascending=[False, False, False, True]
+        ).copy()
 
-    if esg_focus == "Pure Financials Focus":
-        universe["selection_score"] = (
-            0.42 * sharpe_n +
-            0.28 * excess_n +
-            0.20 * ret_n +
-            (0.20 * gamma_scaled) * low_risk_n
-        )
+    elif esg_focus == "Balanced ESG":
+        universe["priority_score"] = universe["esg_mean_score"]
+        universe = universe.sort_values(
+            ["priority_score", "expected_return", "risk"],
+            ascending=[False, False, True]
+        ).copy()
+
     else:
-        universe["selection_score"] = (
-            0.48 * pref_n +
-            0.22 * sharpe_n +
-            0.15 * excess_n +
-            0.08 * ret_n +
-            (0.17 * gamma_scaled) * low_risk_n
-        )
+        universe["priority_score"] = universe["expected_return"]
+        universe = universe.sort_values(
+            ["priority_score", "risk"],
+            ascending=[False, True]
+        ).copy()
 
-    top_pref = universe.sort_values("preference_score", ascending=False).head(20)
-    top_sel = universe.sort_values("selection_score", ascending=False).head(20)
-    top_sharpe = universe.sort_values("sharpe_like", ascending=False).head(15)
-    low_risk = universe.sort_values("risk", ascending=True).head(15)
+    return universe
 
-    candidates = pd.concat([top_pref, top_sel, top_sharpe, low_risk], ignore_index=True)
-    candidates = candidates.drop_duplicates(subset=["ticker"]).copy()
-
-    if len(candidates) > 35:
-        candidates = candidates.sort_values("selection_score", ascending=False).head(35)
-
-    return candidates
-
-def choose_recommended_pair(prices_df, esg_pref, candidates_df, gamma, lambda_esg, r_free, esg_focus):
-    pair_records = []
-
-    tickers = candidates_df["ticker"].tolist()
-    if len(tickers) < 2:
+def choose_recommended_pair(prices_df, universe, esg_focus, gamma, lambda_esg):
+    if len(universe) < 2:
         return None
 
-    for t1, t2 in combinations(tickers, 2):
+    top_n = min(18, len(universe))
+    candidate_pool = universe.head(top_n).copy()
+
+    pair_records = []
+
+    for t1, t2 in combinations(candidate_pool["ticker"], 2):
         stats = get_asset_stats(prices_df, t1, t2)
         if stats is None:
             continue
 
-        esg1 = float(esg_pref.loc[esg_pref["ticker"] == t1, "preference_score"].iloc[0])
-        esg2 = float(esg_pref.loc[esg_pref["ticker"] == t2, "preference_score"].iloc[0])
+        row1 = candidate_pool[candidate_pool["ticker"] == t1].iloc[0]
+        row2 = candidate_pool[candidate_pool["ticker"] == t2].iloc[0]
+
+        if esg_focus == "Pure Financials Focus":
+            esg1 = 0.0
+            esg2 = 0.0
+        else:
+            esg1 = float(row1["preference_score"])
+            esg2 = float(row2["preference_score"])
 
         result = optimize_two_asset_portfolio(
             stats["r1"], stats["r2"],
@@ -635,73 +639,99 @@ def choose_recommended_pair(prices_df, esg_pref, candidates_df, gamma, lambda_es
             gamma, lambda_esg
         )
 
-        risk_opt = max(result["risk_opt"], 1e-9)
-        sharpe_opt = (result["ret_opt"] - r_free) / risk_opt
-        pair_esg = result["esg_opt"] / 10
-        diversification = 1 - ((stats["rho"] + 1) / 2)
+        avg_priority = (float(row1["priority_score"]) + float(row2["priority_score"])) / 2
+        avg_return = (float(row1["expected_return"]) + float(row2["expected_return"])) / 2
+        diversification_bonus = -abs(stats["rho"])
+        pair_risk = result["risk_opt"]
+
+        if esg_focus == "Pure Financials Focus":
+            final_score = (
+                0.60 * avg_return
+                - 0.18 * pair_risk
+                + 0.12 * diversification_bonus
+                + 0.10 * result["ret_opt"]
+            )
+        else:
+            gamma_penalty = 0.03 * gamma * pair_risk
+            final_score = (
+                0.55 * (avg_priority / 10)
+                + 0.20 * avg_return
+                + 0.10 * (result["ret_opt"])
+                + 0.10 * diversification_bonus
+                - gamma_penalty
+            )
 
         pair_records.append({
             "ticker1": t1,
             "ticker2": t2,
             "stats": stats,
             "result": result,
-            "esg1": esg1,
-            "esg2": esg2,
-            "utility_opt": result["utility_opt"],
-            "risk_opt": result["risk_opt"],
-            "ret_opt": result["ret_opt"],
-            "sharpe_opt": sharpe_opt,
-            "pair_esg": pair_esg,
-            "diversification": diversification
+            "row1": row1,
+            "row2": row2,
+            "final_score": final_score
         })
 
     if not pair_records:
         return None
 
     pairs_df = pd.DataFrame(pair_records)
-
-    utility_n = normalize_series(pairs_df["utility_opt"])
-    sharpe_n = normalize_series(pairs_df["sharpe_opt"])
-    esg_n = normalize_series(pairs_df["pair_esg"])
-    div_n = normalize_series(pairs_df["diversification"])
-    risk_n = normalize_series(pairs_df["risk_opt"])
-    low_risk_n = 1 - risk_n
-
-    gamma_scaled = (gamma - 0.5) / 9.5
-    gamma_scaled = min(max(gamma_scaled, 0), 1)
-
-    if esg_focus == "Pure Financials Focus":
-        pairs_df["final_score"] = (
-            0.38 * utility_n +
-            0.32 * sharpe_n +
-            0.15 * div_n +
-            (0.15 * gamma_scaled) * low_risk_n
-        )
-    elif esg_focus == "Balanced ESG":
-        pairs_df["final_score"] = (
-            0.28 * utility_n +
-            0.22 * sharpe_n +
-            0.30 * esg_n +
-            0.10 * div_n +
-            (0.10 * gamma_scaled) * low_risk_n
-        )
-    else:
-        pairs_df["final_score"] = (
-            0.22 * utility_n +
-            0.18 * sharpe_n +
-            0.40 * esg_n +
-            0.10 * div_n +
-            (0.10 * gamma_scaled) * low_risk_n
-        )
-
     best_idx = pairs_df["final_score"].idxmax()
     best_row = pairs_df.loc[best_idx]
 
+    return {
+        "ticker1": best_row["ticker1"],
+        "ticker2": best_row["ticker2"],
+        "stats": best_row["stats"],
+        "result": best_row["result"],
+        "row1": best_row["row1"],
+        "row2": best_row["row2"]
+    }
+
+def build_recommendation_reason(esg_focus, row1, row2):
+    name1 = row1["name"]
+    name2 = row2["name"]
+
+    if esg_focus == "Environmental":
+        return (
+            f"These two stocks were chosen because they rank among the strongest candidates on "
+            f"**Environmental score** while still meeting the profitability filter of **at least 10% expected return** "
+            f"and the realism cap of **25% maximum expected return**. "
+            f"{name1} has an environmental score of **{row1['environmental']:.2f}** and expected return of **{row1['expected_return']*100:.2f}%**, "
+            f"while {name2} has an environmental score of **{row2['environmental']:.2f}** and expected return of **{row2['expected_return']*100:.2f}%**."
+        )
+
+    if esg_focus == "Social":
+        return (
+            f"These two stocks were chosen because they rank among the strongest candidates on "
+            f"**Social score** while still meeting the profitability filter of **at least 10% expected return** "
+            f"and the realism cap of **25% maximum expected return**. "
+            f"{name1} has a social score of **{row1['social']:.2f}** and expected return of **{row1['expected_return']*100:.2f}%**, "
+            f"while {name2} has a social score of **{row2['social']:.2f}** and expected return of **{row2['expected_return']*100:.2f}%**."
+        )
+
+    if esg_focus == "Governance":
+        return (
+            f"These two stocks were chosen because they rank among the strongest candidates on "
+            f"**Governance score** while still meeting the profitability filter of **at least 10% expected return** "
+            f"and the realism cap of **25% maximum expected return**. "
+            f"{name1} has a governance score of **{row1['governance']:.2f}** and expected return of **{row1['expected_return']*100:.2f}%**, "
+            f"while {name2} has a governance score of **{row2['governance']:.2f}** and expected return of **{row2['expected_return']*100:.2f}%**."
+        )
+
+    if esg_focus == "Balanced ESG":
+        return (
+            f"These two stocks were chosen because they rank among the strongest candidates on "
+            f"**average ESG score** while still meeting the profitability filter of **at least 10% expected return** "
+            f"and the realism cap of **25% maximum expected return**. "
+            f"{name1} has an average ESG score of **{row1['esg_mean_score']:.2f}** and expected return of **{row1['expected_return']*100:.2f}%**, "
+            f"while {name2} has an average ESG score of **{row2['esg_mean_score']:.2f}** and expected return of **{row2['expected_return']*100:.2f}%**."
+        )
+
     return (
-        best_row["ticker1"],
-        best_row["ticker2"],
-        best_row["stats"],
-        best_row["result"]
+        f"These two stocks were chosen because they offered some of the **highest expected returns** available after applying the "
+        f"realism cap of **25% maximum expected return**. "
+        f"{name1} has an expected return of **{row1['expected_return']*100:.2f}%**, and "
+        f"{name2} has an expected return of **{row2['expected_return']*100:.2f}%**."
     )
 
 def render_back_button():
@@ -735,7 +765,8 @@ def render_brand_header(show_tagline=True):
 def render_outputs(
     ticker1, ticker2, stats, result, r_free, esg_focus,
     esg_row_1, esg_row_2, name1, name2,
-    rating1, rating2, level1, level2
+    rating1, rating2, level1, level2,
+    recommendation_reason=None
 ):
     portfolio_esg_mean = result["esg_opt"]
     portfolio_rating, portfolio_level = esg_rating(float(portfolio_esg_mean))
@@ -766,6 +797,10 @@ def render_outputs(
 
     with tab1:
         st.info(summary_text)
+
+        if recommendation_reason:
+            st.markdown("### Why these stocks were chosen")
+            st.write(recommendation_reason)
 
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Expected Return", f"{result['ret_opt']*100:.2f}%")
@@ -1140,10 +1175,10 @@ if st.session_state.page == "home":
     st.markdown("## Three Ways To Build Your Let It Grow Portfolio")
     with st.expander("🤖 Recommendation Engine – fully automated"):
         st.write("""
-        - We analyse all S&P500 stocks using your selected ESG focus.
-        - A scoring function selects the best candidates using ESG fit, excess return, risk, and Sharpe-like attractiveness.
-        - Candidate pairs are evaluated and the pair with the strongest final recommendation score is selected.
-        - Your ESG choice, risk aversion, and risk-free rate now have a much stronger influence on the final result.
+        - Environmental / Social / Governance modes first require expected returns of at least 10% and no more than 25%.
+        - Balanced ESG also requires at least 10% expected return and then ranks stocks by average ESG score.
+        - Pure Financials Focus ignores ESG and ranks by highest expected return, with the same 25% cap.
+        - The selected pair is then optimized into a final portfolio.
         """)
 
     with st.expander("📊 S&P500 Stocks Comparison – pick any two"):
@@ -1187,14 +1222,20 @@ elif st.session_state.page == "recommendation":
     esg_pref, lambda_esg = add_preference_scores(esg, esg_focus)
     asset_summary = get_single_asset_summary_all(prices)
 
-    candidates = build_recommendation_candidates(esg_pref, asset_summary, r_free, gamma, esg_focus)
-    best_pair = choose_recommended_pair(prices, esg_pref, candidates, gamma, lambda_esg, r_free, esg_focus)
+    universe = build_recommendation_universe(esg_pref, asset_summary, esg_focus)
+    chosen = choose_recommended_pair(prices, universe, esg_focus, gamma, lambda_esg)
 
-    if best_pair is None:
+    if chosen is None:
         st.error("No valid stock pair could be formed under the current recommendation constraints.")
         st.stop()
 
-    ticker1, ticker2, stats, result = best_pair
+    ticker1 = chosen["ticker1"]
+    ticker2 = chosen["ticker2"]
+    stats = chosen["stats"]
+    result = chosen["result"]
+    chosen_row_1 = chosen["row1"]
+    chosen_row_2 = chosen["row2"]
+
     name1 = get_asset_name(ticker1)
     name2 = get_asset_name(ticker2)
 
@@ -1204,10 +1245,13 @@ elif st.session_state.page == "recommendation":
     rating1, level1 = esg_rating(float(esg_row_1["esg_mean_score"]))
     rating2, level2 = esg_rating(float(esg_row_2["esg_mean_score"]))
 
+    recommendation_reason = build_recommendation_reason(esg_focus, chosen_row_1, chosen_row_2)
+
     render_outputs(
         ticker1, ticker2, stats, result, r_free, esg_focus,
         esg_row_1, esg_row_2, name1, name2,
-        rating1, rating2, level1, level2
+        rating1, rating2, level1, level2,
+        recommendation_reason=recommendation_reason
     )
 
 # --------------------------------------------------
@@ -1257,8 +1301,12 @@ elif st.session_state.page == "sp500":
         st.error("Not enough overlapping data to compare these two assets.")
         st.stop()
 
-    esg1 = float(esg_pref.loc[esg_pref["ticker"] == ticker1, "preference_score"].iloc[0])
-    esg2 = float(esg_pref.loc[esg_pref["ticker"] == ticker2, "preference_score"].iloc[0])
+    if esg_focus == "Pure Financials Focus":
+        esg1 = 0.0
+        esg2 = 0.0
+    else:
+        esg1 = float(esg_pref.loc[esg_pref["ticker"] == ticker1, "preference_score"].iloc[0])
+        esg2 = float(esg_pref.loc[esg_pref["ticker"] == ticker2, "preference_score"].iloc[0])
 
     result = optimize_two_asset_portfolio(
         stats["r1"], stats["r2"],
@@ -1339,18 +1387,18 @@ elif st.session_state.page == "custom":
 
     def custom_pref_score(env, soc, gov, esg_focus):
         if esg_focus == "Balanced ESG":
-            return (env + soc + gov) / 3
+            return ((env + soc + gov) / 3) * 10
         elif esg_focus == "Environmental":
-            return 0.75 * env + 0.125 * soc + 0.125 * gov
+            return env * 10
         elif esg_focus == "Social":
-            return 0.125 * env + 0.75 * soc + 0.125 * gov
+            return soc * 10
         elif esg_focus == "Governance":
-            return 0.125 * env + 0.125 * soc + 0.75 * gov
+            return gov * 10
         else:
-            return (env + soc + gov) / 3
+            return 0.0
 
-    esg1 = custom_pref_score(env1, soc1, gov1, esg_focus) * 10
-    esg2 = custom_pref_score(env2, soc2, gov2, esg_focus) * 10
+    esg1 = custom_pref_score(env1, soc1, gov1, esg_focus)
+    esg2 = custom_pref_score(env2, soc2, gov2, esg_focus)
 
     result = optimize_two_asset_portfolio(
         r1, r2, sd1, sd2, rho, esg1, esg2, gamma, lambda_esg
