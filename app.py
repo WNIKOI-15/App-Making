@@ -437,6 +437,37 @@ def optimize_two_asset_portfolio(r1, r2, sd1, sd2, rho, esg1, esg2, gamma, lambd
         "utility_opt": utilities[best_idx]
     }
 
+def compute_tangency_portfolio(r1, r2, sd1, sd2, rho, r_free):
+    weights = np.linspace(0, 1, 2001)
+
+    best_sharpe = -np.inf
+    best_w = 0.0
+    best_ret = r_free
+    best_sd = 0.0
+
+    for w in weights:
+        ret = portfolio_ret(w, r1, r2)
+        sd = portfolio_sd(w, sd1, sd2, rho)
+
+        if sd <= 1e-12:
+            sharpe = -np.inf
+        else:
+            sharpe = (ret - r_free) / sd
+
+        if sharpe > best_sharpe:
+            best_sharpe = sharpe
+            best_w = w
+            best_ret = ret
+            best_sd = sd
+
+    return {
+        "w1": best_w,
+        "w2": 1 - best_w,
+        "ret_tangency": best_ret,
+        "sd_tangency": best_sd,
+        "sharpe_tangency": best_sharpe
+    }
+
 def describe_investment_type(risk, esg_mean, sharpe, esg_focus):
     if risk < 0.18:
         risk_text = "relatively defensive"
@@ -544,6 +575,14 @@ def render_outputs(
     else:
         sharpe_ratio = 0
 
+    tangency = compute_tangency_portfolio(
+        stats["r1"], stats["r2"],
+        stats["sd1"], stats["sd2"],
+        stats["rho"], r_free
+    )
+    ret_tangency = tangency["ret_tangency"]
+    sd_tangency = tangency["sd_tangency"]
+
     investment_description = describe_investment_type(result["risk_opt"], portfolio_esg_mean, sharpe_ratio, esg_focus)
 
     summary_text = (
@@ -599,104 +638,54 @@ def render_outputs(
         )
 
     with tab2:
-        st.markdown("### Portfolio Frontier")
+        st.markdown("### Portfolio Visualization")
 
-        # Keep only the efficient upper branch and line only
-        returns_all = np.array(result["portfolio_returns"])
-        risks_all = np.array(result["portfolio_risks"])
-        min_var_idx = np.argmin(risks_all)
-        min_var_ret = returns_all[min_var_idx]
+        # Generate efficient frontier
+        weights_plot = np.linspace(0, 1, 200)
+        returns_frontier = [portfolio_ret(w, stats["r1"], stats["r2"]) for w in weights_plot]
+        sds_frontier = [portfolio_sd(w, stats["sd1"], stats["sd2"], stats["rho"]) for w in weights_plot]
 
-        efficient_mask = returns_all >= (min_var_ret - 1e-12)
-        efficient_risks = risks_all[efficient_mask]
-        efficient_returns = returns_all[efficient_mask]
+        # Create plot
+        fig, ax = plt.subplots(figsize=(10, 6))
 
-        order = np.argsort(efficient_risks)
-        efficient_risks = efficient_risks[order]
-        efficient_returns = efficient_returns[order]
+        # Efficient frontier
+        ax.plot(sds_frontier, returns_frontier, 'b-', linewidth=2, label='Efficient Frontier')
 
-        x_min = min(stats["sd1"], stats["sd2"], result["risk_opt"]) * 0.85
-        x_max = max(stats["sd1"], stats["sd2"], result["risk_opt"]) * 1.08
-        y_min = min(stats["r1"], stats["r2"], result["ret_opt"]) * 0.75
-        y_max = max(stats["r1"], stats["r2"], result["ret_opt"]) * 1.12
-
-        fig, ax = plt.subplots(figsize=(8.6, 5.4), dpi=170)
-        fig.patch.set_facecolor("white")
-        ax.set_facecolor("#fbfdff")
-
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-        ax.spines["left"].set_color("#0f2d68")
-        ax.spines["bottom"].set_color("#0f2d68")
-        ax.spines["left"].set_linewidth(1.5)
-        ax.spines["bottom"].set_linewidth(1.5)
-
-        ax.grid(True, color="#c7d2e4", alpha=0.55, linewidth=0.8)
-
-        frontier_handle, = ax.plot(
-            efficient_risks,
-            efficient_returns,
-            color="#4e9f58",
-            linewidth=4.0,
-            solid_capstyle="round",
-            label="Efficient Frontier",
-            zorder=2
+        # Capital Market Line
+        sd_max = max(sds_frontier) * 1.2
+        sd_cml = np.linspace(0, sd_max, 100)
+        ret_cml = (
+            r_free + (ret_tangency - r_free) / sd_tangency * sd_cml
+            if sd_tangency > 0 else r_free * np.ones_like(sd_cml)
         )
+        ax.plot(sd_cml, ret_cml, 'g--', linewidth=2, label='Capital Market Line')
 
-        asset1_handle = ax.scatter(
-            stats["sd1"], stats["r1"],
-            s=260, color="#1f66c2", edgecolor="#184d93", linewidth=1.2,
-            label=name1, zorder=5
-        )
-        asset2_handle = ax.scatter(
-            stats["sd2"], stats["r2"],
-            s=260, color="#66a84f", edgecolor="#4c7e3b", linewidth=1.2,
-            label=name2, zorder=5
-        )
-        opt_handle = ax.scatter(
-            result["risk_opt"], result["ret_opt"],
-            s=620, color="#0f3d8c", edgecolor="#0a2a60", linewidth=1.0,
-            marker="*", label="Optimal Portfolio", zorder=6
-        )
+        # Tangency portfolio
+        ax.scatter(sd_tangency, ret_tangency, color='red', s=200, zorder=5, marker='*', label='Tangency Portfolio')
 
-        ax.set_title("Risk-Return Frontier", fontsize=24, color="#0f2d68", fontweight="bold", pad=16)
-        ax.set_xlabel("Risk (Standard Deviation)", fontsize=18, color="#0f2d68", labelpad=12)
-        ax.set_ylabel("Expected Return", fontsize=18, color="#0f2d68", labelpad=14)
+        # Optimal portfolio
+        ax.scatter(result["risk_opt"], result["ret_opt"], color='orange', s=200, zorder=5, marker='D', label='Your Optimal Portfolio')
 
-        ax.set_xlim(x_min, x_max)
-        ax.set_ylim(y_min, y_max)
+        # Risk-free asset
+        ax.scatter(0, r_free, color='green', s=150, zorder=5, marker='s', label='Risk-Free Asset')
 
+        # Individual assets
+        ax.scatter(stats["sd1"], stats["r1"], color='blue', s=120, zorder=5, marker='o', label=name1)
+        ax.scatter(stats["sd2"], stats["r2"], color='purple', s=120, zorder=5, marker='o', label=name2)
+
+        ax.set_xlabel('Risk (Standard Deviation)')
+        ax.set_ylabel('Expected Return')
+        ax.set_title('Portfolio Optimization')
         ax.xaxis.set_major_formatter(mtick.PercentFormatter(1.0, decimals=1))
         ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0, decimals=1))
-        ax.tick_params(axis="both", labelsize=14, colors="#0f2d68", width=1.2, length=5)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
 
-        legend = ax.legend(
-            handles=[asset1_handle, asset2_handle, opt_handle, frontier_handle],
-            labels=[name1, name2, "Optimal Portfolio", "Efficient Frontier"],
-            loc="upper left",
-            bbox_to_anchor=(1.02, 1.0),
-            borderaxespad=0.0,
-            frameon=True,
-            facecolor="white",
-            edgecolor="#b9c8df",
-            fontsize=6.5,
-            borderpad=0.4,
-            labelspacing=0.3,
-            handlelength=1.3,
-            handletextpad=0.35,
-            markerscale=0.55
-        )
-        for text in legend.get_texts():
-            if text.get_text() == "Efficient Frontier":
-                text.set_color("#4e9f58")
-            else:
-                text.set_color("#0f2d68")
-
-        plt.tight_layout()
-        st.pyplot(fig, use_container_width=True)
+        st.pyplot(fig)
 
         st.write(
-            "The chart shows the efficient frontier for the two selected assets, together with each standalone asset and the utility-maximizing portfolio."
+            "The chart shows the two-asset portfolio frontier, the Capital Market Line, the tangency portfolio, "
+            "your utility-maximizing portfolio, and the risk-free asset."
         )
 
         st.markdown("### ESG Weight Composition of Each Stock")
