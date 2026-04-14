@@ -33,21 +33,98 @@ def go_to(page_name: str):
 # --------------------------------------------------
 st.markdown("""
 <style>
+  .integrated-card-wrap {
+    margin-bottom: 14px;
+}
+
+.integrated-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(247,251,255,0.88)) !important;
+    border: 1.5px solid #b8962e; !important;
+    border-radius: 22px 22px 0 0 !important;
+    padding: 24px 24px 18px 24px !important;
+    box-shadow: 0 14px 30px rgba(11, 92, 173, 0.08) !important;
+    min-height: 255px;
+    position: relative;
+    overflow: hidden;
+    border-bottom: none !important;
+}
+
+.integrated-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 5px;
+    background: linear-gradient(90deg, #0b5cad, #6bb8ff, #2f8f3a);
+}
+
+.integrated-card-action {
+    margin-top: -1px;
+}
+
+.integrated-card-action .stButton > button {
+    border-radius: 0 0 22px 22px !important;
+    margin-top: 0 !important;
+    box-shadow: 0 14px 30px rgba(11, 92, 173, 0.08) !important;
+    border-top: 1px solid rgba(255,255,255,0.35) !important;
+    min-height: 54px;
+    font-size: 0.97rem !important;
+}
     .stApp, .stApp > header, .main, .block-container {
-        background: linear-gradient(180deg, #f4f9ff 0%, #eef6fb 55%, #eef8f1 100%) !important;
+    background:
+        /* green swirls (left & right) */
+        radial-gradient(ellipse at 0% 50%, rgba(120, 255, 180, 0.35), transparent 100%),
+        radial-gradient(ellipse at 100% 50%, rgba(100, 255, 200, 0.30), transparent 60%),
+
+        /* extra subtle swirl motion layers */
+        radial-gradient(circle at 5% 30%, rgba(80, 220, 160, 0.25), transparent 40%),
+        radial-gradient(circle at 95% 70%, rgba(120, 255, 180, 0.20), transparent 45%),
+
+        /* soft glowing blobs */
+        radial-gradient(circle at 20% 20%, rgba(120, 170, 255, 0.35), transparent 40%),
+        radial-gradient(circle at 80% 25%, rgba(200, 180, 255, 0.30), transparent 35%),
+        radial-gradient(circle at 50% 60%, rgba(255, 255, 255, 0.55), transparent 45%),
+        radial-gradient(circle at 10% 85%, rgba(140, 200, 255, 0.25), transparent 40%),
+
+        /* main dreamy gradient */
+        radial-gradient(circle at 50% 0%,
+            rgba(255,255,255,0.95) 0%,
+            rgba(220,230,255,0.85) 20%,
+            rgba(170,190,255,0.65) 45%,
+            rgba(120,150,255,0.55) 70%,
+            rgba(70,100,200,0.75) 100%
+        );
+
+    background-attachment: fixed;
     }
+            
 
     body, .stApp, .stMarkdown, .stMarkdown *, div, p, h1, h2, h3, h4, h5, h6, span, li,
     .stText, .stMetric, .stMetric label, .stMetric div {
         color: #17324d !important;
     }
-
+    
     .main-title {
-        font-size: 3.35rem;
-        font-weight: 900;
+        font-size: 2.75rem;
+        font-weight: 1000;
         margin-bottom: 0.15rem;
         letter-spacing: 0.4px;
-        font-family: Georgia, "Times New Roman", serif;
+        font-family: "Segoe Script", "Lucida Handwriting", cursive;
+            
+        .copyright {
+        font-size: 1rem;
+        margin-left: 6px;
+        position: relative;
+        top: -15px;        /* lifts it up like a logo mark */
+        color: #d4af37;    /* gold to match your underline */
+        font-family: Calibri, "Segoe UI", Arial, sans-serif;
+        }
+        
+            
+        display: inline-block;
+        line-height: 1.22;
+        padding-bottom: 2px;
+        border-bottom: 3px solid;
+        border-image: linear-gradient(90deg, #d4af37, #ffd700, #b8962e) 1;
     }
 
     .main-title-blue {
@@ -71,13 +148,194 @@ st.markdown("""
 
     .page-panel {
         background: rgba(255,255,255,0.78);
-        border: 1px solid #d7e4f2;
+        border: 1px solid #000000;
         border-radius: 18px;
         padding: 18px 22px;
         box-shadow: 0 6px 18px rgba(11, 92, 173, 0.06);
         margin-bottom: 18px;
         backdrop-filter: blur(4px);
     }
+    
+    .hero-shell {
+    background: linear-gradient(135deg, rgba(255,255,255,0.82), rgba(241,247,255,0.74));
+    border: 1px solid rgba(255,255,255,0.55);
+    border-radius: 28px;
+    padding: 34px 34px 28px 34px;
+    box-shadow: 0 16px 44px rgba(11, 92, 173, 0.10);
+    backdrop-filter: blur(10px);
+    margin-bottom: 20px;
+}
+
+.hero-kicker {
+    display: inline-block;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.72);
+    border: 1px solid #d7e4f2;
+    color: #2f6b3b !important;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+}
+
+.hero-headline {
+    font-size: 1.16rem;
+    font-family: Georgia, "Times New Roman", serif; 
+    line-height: 1.75;
+    color: #3f5871 !important;
+    max-width: 760px;
+    margin-top: 10px;
+}
+
+.hero-stat {
+    background: rgba(255,255,255,0.72);
+    border: 1px solid #d7e4f2;
+    border-radius: 18px;
+    padding: 18px 18px 16px 18px;
+    box-shadow: 0 10px 24px rgba(11, 92, 173, 0.05);
+    min-height: 120px;
+}
+
+.hero-stat-label {
+    font-size: 0.84rem;
+    color: #5e7590 !important;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 700;
+}
+
+.hero-stat-value {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #0b5cad !important;
+    margin-bottom: 4px;
+}
+
+.hero-stat-sub {
+    font-size: 0.92rem;
+    color: #4b6580 !important;
+    line-height: 1.45;
+}
+
+.section-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #17324d !important;
+    margin: 0.2rem 0 0.8rem 0;
+}
+
+.section-intro {
+    font-size: 0.98rem;
+    color: #48637d !important;
+    margin-bottom: 1rem;
+    max-width: 820px;
+}
+
+.home-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(247,251,255,0.88)) !important;
+    border: 1px solid #d7e4f2 !important;
+    border-radius: 22px !important;
+    padding: 24px 24px 20px 24px !important;
+    box-shadow: 0 14px 30px rgba(11, 92, 173, 0.08) !important;
+    min-height: 260px;
+    position: relative;
+    overflow: hidden;
+}
+
+.home-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 5px;
+    background: linear-gradient(90deg, #0b5cad, #6bb8ff, #2f8f3a);
+}
+
+.home-eyebrow {
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: #5f7691 !important;
+    margin-bottom: 10px;
+}
+
+.home-icon {
+    font-size: 2rem;
+    margin-bottom: 0.65rem;
+}
+
+.home-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #17324d !important;
+    margin-bottom: 0.55rem;
+}
+
+.home-text {
+    color: #4d657f !important;
+    font-size: 0.96rem;
+    line-height: 1.62;
+    min-height: 120px;
+}
+
+.home-highlight {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(236,244,251,0.78);
+    border: 1px solid #d7e4f2;
+    color: #32506d !important;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.insight-card {
+    background: rgba(255,255,255,0.78);
+    border: 1.5px solid #8c6a2f;
+    border-radius: 18px;
+    padding: 18px 18px 16px 18px;
+    box-shadow: 0 8px 20px rgba(11, 92, 173, 0.06);
+    min-height: 150px;
+}
+
+.insight-icon {
+    font-size: 1.55rem;
+    margin-bottom: 0.45rem;
+}
+
+.insight-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #17324d !important;
+    margin-bottom: 0.35rem;
+}
+
+.insight-text {
+    color: #587089 !important;
+    font-size: 0.92rem;
+    line-height: 1.55;
+}
+
+.home-note {
+    background: linear-gradient(135deg, rgba(255,255,255,0.80), rgba(238,246,255,0.78));
+    border: 1px solid #d7e4f2;
+    border-radius: 20px;
+    padding: 18px 22px;
+    box-shadow: 0 8px 20px rgba(11, 92, 173, 0.06);
+    margin: 10px 0 18px 0;
+}
+
+.copyright {
+    font-size: 0.9rem;
+    margin-left: 6px;
+    position: relative;
+    top: -12px;
+    color: #d4af37 !important;
+    font-family: Calibri, "Segoe UI", Arial, sans-serif;
+}
 
     .home-card {
         background-color: white !important;
@@ -704,8 +962,9 @@ def render_brand_header(show_tagline=True):
         st.markdown(
             """
             <div class="main-title">
-                <span class="main-title-blue">Let It </span>
+                <span class="main-title-blue">Let It</span>
                 <span class="main-title-green">Grow</span>
+                <span class="copyright">©</span>
             </div>
             """,
             unsafe_allow_html=True
@@ -967,23 +1226,79 @@ def render_outputs(
 # HOME PAGE
 # --------------------------------------------------
 if st.session_state.page == "home":
-    header_left, header_right = st.columns([1.5, 7])
-    with header_left:
-        st.image(logo, width=240)
-    with header_right:
-        st.markdown("")
 
-    st.markdown("""
-        <div style="text-align: center; padding: 0.2rem 0 1rem 0;">
+    left, right = st.columns([1.6, 2])
+
+    with left:
+        header_left, header_right = st.columns([1.5, 7])
+        with header_left:
+            st.image(logo, width=240)
+        with header_right:
+            st.markdown("")
+        st.markdown("""
             <div class="main-title">
-                <span class="main-title-blue">Let It </span>
+                <span class="main-title-blue">Let It</span>
                 <span class="main-title-green">Grow</span>
+                <span class="copyright">©</span>
             </div>
-            <div style="font-size: 1.15rem; color: #48637d; max-width: 760px; margin: 0 auto;">
-                Build a personalised portfolio that balances financial returns, risk, and ESG values through real S&amp;P500 data and portfolio optimization.
+        <div style="text-align: center;"> 
+            <div class="hero-headline">
+                Design portfolios with greater clarity, discipline, and purpose.
+                Explore S&P     500 opportunities through risk, return, and ESG insight.
             </div>
-        </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+
+    with right:
+        r1, r2 = st.columns(2)
+
+        with r1:
+            st.markdown("""
+            <div class="insight-card">
+                <div class="insight-icon">🎯</div>
+                <div class="insight-title">Personalised</div>
+                <div class="insight-text">
+                    Portfolio construction adapts to your ESG focus, risk tolerance, and financial objectives.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with r2:
+            st.markdown("""
+            <div class="insight-card">
+                <div class="insight-icon">📐</div>
+                <div class="insight-title">Theory-Driven</div>
+                <div class="insight-text">
+                    Built on modern portfolio theory, efficient frontiers, and utility maximisation.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+
+        r3, r4, = st.columns(2)
+
+        with r3:
+            st.markdown("""
+            <div class="insight-card">
+                <div class="insight-icon">🌿</div>
+                <div class="insight-title">ESG Integrated</div>
+                <div class="insight-text">
+                    Sustainability metrics directly influence portfolio selection, not just reporting.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with r4:
+            st.markdown("""
+            <div class="insight-card">
+                <div class="insight-icon">⚡</div>
+                <div class="insight-title">Interactive</div>
+                <div class="insight-text">
+                    Move seamlessly between automated insights and fully custom portfolio design.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
 
     col_left, col_right = st.columns(2)
 
@@ -992,7 +1307,7 @@ if st.session_state.page == "home":
             <div class="page-panel">
                 <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">🌍</div>
                 <h3 style="color: #17324d; margin-bottom: 0.5rem;">The climate transition is here</h3>
-                <p style="color: #48637d; line-height: 1.4;">
+                <p style="color: #48637d; line-height: 1.5;">
                 Investors are shifting focus – from simply reducing emissions to actively allocating capital
                 toward companies that are well positioned for a low-carbon future. But how do you know which
                 stocks truly align with your values without sacrificing returns?
@@ -1005,7 +1320,7 @@ if st.session_state.page == "home":
             <div class="page-panel">
                 <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">📈</div>
                 <h3 style="color: #17324d; margin-bottom: 0.5rem;">Retail investors demand more</h3>
-                <p style="color: #48637d; line-height: 1.4;">
+                <p style="color: #48637d; line-height: 1.5;">
                 Retail investors increasingly want their investments to reflect their ESG concerns.
                 Let It Grow gives you the tools – powered by real S&P500 ESG data and modern portfolio theory –
                 to make informed, sustainable choices without ignoring risk-adjusted returns.
@@ -1019,83 +1334,71 @@ if st.session_state.page == "home":
         </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("## Choose How You Want To Grow")
+    st.markdown("""
+    <h2 style="text-align: center;">
+    Choose How You Want To Grow
+    </h2>
+""", unsafe_allow_html=True)
+    
     c1, c2, c3 = st.columns(3)
 
     with c1:
         st.markdown("""
-        <div class="home-card" style="text-align: center;">
+        <div class="home-card">
+            <div class="home-eyebrow">Guided</div>
             <div class="home-icon">🤖</div>
             <div class="home-title">Recommendation Engine</div>
-            <div class="home-text">The app selects two suitable stocks automatically based on your ESG focus, risk tolerance, and risk-free rate.</div>
+            <div class="home-text">
+                Receive a curated two-stock portfolio recommendation based on your preferred ESG orientation,
+                risk aversion, and chosen risk-free rate. The model screens the universe, evaluates pair quality,
+                and identifies an optimised allocation.
+            </div>
+            <div class="home-highlight">Best for a fast, research-backed starting point.</div>
         </div>
         """, unsafe_allow_html=True)
-        st.markdown("<div style='height:30px;'></div>", unsafe_allow_html=True)
-        if st.button("Open Recommendation Engine", key="rec_home", use_container_width=True):
+        st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+        if st.button("Launch Recommendation Engine", key="rec_home", use_container_width=True):
             go_to("recommendation")
 
     with c2:
         st.markdown("""
-        <div class="home-card" style="text-align: center;">
+        <div class="home-card">
+            <div class="home-eyebrow">Comparative</div>
             <div class="home-icon">📊</div>
-            <div class="home-title">S&P500 Stocks Comparison</div>
-            <div class="home-text">Choose any two S&P500 stocks from the dataset and compare them using return, risk, correlation, and ESG characteristics.</div>
+            <div class="home-title">S&amp;P 500 Stock Comparison</div>
+            <div class="home-text">
+                Select any two companies from the dataset and evaluate them through expected return, annualised
+                volatility, correlation structure, and ESG profile. The app then derives an optimal two-asset mix
+                from your chosen preferences.
+            </div>
+            <div class="home-highlight">Best for side-by-side analysis and portfolio trade-offs.</div>
         </div>
         """, unsafe_allow_html=True)
-        st.markdown("<div style='height:30px;'></div>", unsafe_allow_html=True)
-        if st.button("Open S&P500 Comparison", key="sp_home", use_container_width=True):
+        st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+        if st.button("Open Stock Comparison", key="sp_home", use_container_width=True):
             go_to("sp500")
 
     with c3:
         st.markdown("""
-        <div class="home-card" style="text-align: center;">
+        <div class="home-card">
+            <div class="home-eyebrow">Advanced</div>
             <div class="home-icon">🛠️</div>
-            <div class="home-title">Advanced Custom Generator</div>
-            <div class="home-text">Manually enter two custom assets and all portfolio parameters to generate a fully custom optimised portfolio.</div>
+            <div class="home-title">Custom Portfolio Generator</div>
+            <div class="home-text">
+                Input your own assumptions for return, volatility, correlation, and ESG characteristics to build
+                a bespoke two-asset portfolio. Ideal for scenario analysis, academic demonstrations, and testing
+                hypothetical investment cases.
+            </div>
+            <div class="home-highlight">Best for full control over every portfolio input.</div>
         </div>
         """, unsafe_allow_html=True)
-        st.markdown("<div style='height:30px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
         if st.button("Open Custom Generator", key="custom_home", use_container_width=True):
             go_to("custom")
 
-    st.markdown("## Why Let It Grow?")
-    b1, b2, b3, b4 = st.columns(4)
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>Why the Platform Feels More Intelligent</div>", unsafe_allow_html=True)
 
-    with b1:
-        st.markdown("""
-        <div class="page-panel" style="text-align: center;">
-            <div style="font-size: 1.8rem;">🎯</div>
-            <div style="font-weight: 600; margin: 0.5rem 0; color: #17324d;">Personalised</div>
-            <div style="font-size: 0.85rem; color: #64748b;">Adjust risk, ESG focus, and rate</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with b2:
-        st.markdown("""
-        <div class="page-panel" style="text-align: center;">
-            <div style="font-size: 1.8rem;">📈</div>
-            <div style="font-weight: 600; margin: 0.5rem 0; color: #17324d;">Modern Theory</div>
-            <div style="font-size: 0.85rem; color: #64748b;">Efficient frontier + utility max</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with b3:
-        st.markdown("""
-        <div class="page-panel" style="text-align: center;">
-            <div style="font-size: 1.8rem;">🌍</div>
-            <div style="font-weight: 600; margin: 0.5rem 0; color: #17324d;">Real ESG data</div>
-            <div style="font-size: 0.85rem; color: #64748b;">S&P500 E/S/G scores</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with b4:
-        st.markdown("""
-        <div class="page-panel" style="text-align: center;">
-            <div style="font-size: 1.8rem;">⚡</div>
-            <div style="font-weight: 600; margin: 0.5rem 0; color: #17324d;">Interactive</div>
-            <div style="font-size: 0.85rem; color: #64748b;">Works on any device</div>
-        </div>
-        """, unsafe_allow_html=True)
 
     st.markdown("## Three Ways To Build Your Let It Grow Portfolio")
     with st.expander("🤖 Recommendation Engine – fully automated"):
